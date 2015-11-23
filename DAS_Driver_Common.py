@@ -955,7 +955,7 @@ def DAS_Config(mpi4py_rank, Model_Driver, Start_Year, Start_Month, Start_Day, St
         print "Constant_File_Name_Header",Constant_File_Name_Header
         print "============================================================================================================================"
     
-    Soil_Layer_Num = 15
+    Soil_Layer_Num = 10
     Snow_Layer_Num = 5
     ParFlow_Layer_Num = 30
     
@@ -1006,7 +1006,7 @@ def DAS_Config(mpi4py_rank, Model_Driver, Start_Year, Start_Month, Start_Day, St
     #nthreads_CLM = num_processors
     nthreads_CLM = 1    # OpenMP does not work for CLM4.5
     
-    Model_Path = DAS_Depends_Path + "bin/cesm_sp_serial.exe"
+    Model_Path = "/disk02/usr/people/lrains/Model/daspy_depends/bin/cesm_sp_serial.exe"
     
     if mpi4py_rank == 0:
         print "**********Model_Path",Model_Path

@@ -2,7 +2,7 @@
     CLM and WRF Coupled System
 '''
 
-Def_PP = 0 # (0: Serial, 1: ParallelPython 2: MPI4Py)
+Def_PP = 1 # (0: Serial, 1: ParallelPython 2: MPI4Py)
 mpi4py_comm = []
 mpi4py_null = []
 mpi4py_rank = 0
@@ -33,6 +33,9 @@ sys.path.append('Utilities')
 sys.path.append('Algorithm')
 sys.path.append('Algorithm/DAS')
 sys.path.append('ForcingData')
+
+sys.path.append('/usr/lib64/python2.7/site-packages/mpich/')
+sys.path.append('/disk02/usr/people/lrains/Model/daspy_depends/pp-1.6.4')
 
 Def_Figure_Output = 1
 if Def_Figure_Output:
@@ -65,7 +68,10 @@ if mpi4py_rank == 0:
     """
 
 
-Def_Region = 3    
+#Def_Region = 3   
+# Australia
+Def_Region = 44
+ 
 Model_Driver = "CLM_45" 
 PicHeight, PicWidth, RegionName, Row_Numbers, Col_Numbers, Grid_Resolution_CEA, Grid_Resolution_GEO, \
 mksrf_edgee, mksrf_edgew, mksrf_edges, mksrf_edgen, Region_Name, Run_Dir_Home, DAS_Output_Path, Hydraulic_File_Name, \
@@ -171,7 +177,7 @@ if Def_Region == -1:
 if mpi4py_rank == 0:
     print "************************************** Datetime Configuration"
 # Model Start Time
-Start_Year      = '2012'
+Start_Year      = '2000'
 Start_Month     = '01'
 Start_Day       = '01'
 Start_Hour      = '00'
@@ -181,9 +187,9 @@ Datetime_Start = datetime.datetime(string.atoi(Start_Year), string.atoi(Start_Mo
 Datetime_Start_Init = datetime.datetime(string.atoi(Start_Year), string.atoi(Start_Month), string.atoi(Start_Day), 00, 00)
 
 # Model End Time
-End_Year        = '2012'
+End_Year        = '2000'
 End_Month       = '01'
-End_Day         = '03'
+End_Day         = '15'
 End_Hour        = '23'
 End_Minute      = '00'
 Datetime_End = datetime.datetime(string.atoi(End_Year), string.atoi(End_Month), string.atoi(End_Day), string.atoi(End_Hour), string.atoi(End_Minute))

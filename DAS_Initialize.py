@@ -28,13 +28,13 @@ def DAS_Initialize(Model_Driver, Def_Region, mpi4py_rank=0):
     if mpi4py_rank == 0:
         print "socket.gethostname()",socket.gethostname()
     
-    HOME_Path="/home/hanxujun"
+    HOME_Path="/disk02/usr/people/lrains/"
     
-    DasPy_Path = HOME_Path+"/DasPy_1.0/"
-    DAS_Data_Path = HOME_Path+"/DasPy_1.0/DAS_Data/"
-    DAS_Output_Path = HOME_Path+"/DasPy_1.0/DAS_Data/"
+    DasPy_Path = HOME_Path+"/Model/daspy/"
+    DAS_Data_Path = HOME_Path+"/Model/daspy/DAS_Data/"
+    DAS_Output_Path = HOME_Path+"/Model/daspy/DAS_Data/"
     #DAS_Depends_Path = HOME_Path+"/DAS_Depends/"
-    DAS_Depends_Path = "/home/hanxujun/DAS_Depends/"
+    DAS_Depends_Path = HOME_Path+"/Model/daspy_depends/"
     geog_data_path = ''
     WRF_WPS_Path = ""
     WRF_WRF_Path = ""
@@ -59,7 +59,30 @@ def DAS_Initialize(Model_Driver, Def_Region, mpi4py_rank=0):
         Observation_Path = DAS_Data_Path + "Observation/"+Region_Name+"/"
         Forcing_Folder = "Bilinear_1km_1hour_"+Region_Name
         
-        Station_XY = numpy.array([[6.2, 50.95],[6.36,50.5]])
+        Station_XY = numpy.array([[6.2, -50.95],[6.2,-50.95]])
+
+
+    if Def_Region == 44:
+        PicHeight=25000.0
+        PicWidth=25000.0
+        RegionName="Australia"
+        Row_Numbers = 120    # The Number of Rows of Output Data
+        Col_Numbers = 180   # The Number of Cols of Output Data
+        # Rur Boundary
+        Grid_Resolution_CEA = 25000
+        Grid_Resolution_CEA_String = "1km"
+        mksrf_edgew = 110.0
+        mksrf_edgee = 155.0
+        mksrf_edges = -40.0
+        mksrf_edgen = -10.0
+        Region_Name = "Australia"
+        Run_Dir_Home = DAS_Output_Path + "SysModel/CLM/"+Region_Name+"/3D"
+        Hydraulic_File_Name = DAS_Data_Path + "DataBase/"+Region_Name+"_Hydraulic.nc"
+        Mask_File = DAS_Data_Path + "Analysis/Data/"+Region_Name+"/VEG_"+Region_Name+"_1km.dat"
+        Observation_Path = DAS_Data_Path + "Observation/"+Region_Name+"/"
+        Forcing_Folder = "WFDEI_"+Region_Name
+
+        Station_XY = numpy.array([[145.0, -25.0],[145.0,-25.0]])
     
     if mpi4py_rank == 0:
         print "mksrf_edgew,mksrf_edgee",mksrf_edgew,mksrf_edgee
@@ -94,7 +117,7 @@ def DAS_Initialize(Model_Driver, Def_Region, mpi4py_rank=0):
         print DAS_Depends_Path+"lib64/R/bin/R"
         #print pyper.R(RCMD=DAS_Depends_Path+"lib64/R/bin/R",use_numpy=True)
         try:
-            r = pyper.R(RCMD=DAS_Depends_Path+"lib64/R/bin/R",use_numpy=True)
+            r = pyper.R(use_numpy=True)
         except:
             r = pyper.R(use_numpy=True)
         #r('.libPaths("~/Rlibs")')    # Add Library Path to R

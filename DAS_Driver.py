@@ -482,8 +482,8 @@ def DAS_Driver(mpi4py_comm, mpi4py_null, mpi4py_rank,  mpi4py_size, mpi4py_name,
             Grid_Resolution_GEO_Global = 360.0/8640.0
             Resolution_Name = "5KM"
         
-        Sand_Top_Region, Clay_Top_Region, Organic_Top_Region, Bulk_Density_Top_Region, Sand_Sub_Region, Clay_Sub_Region, Organic_Sub_Region, Bulk_Density_Sub_Region \
-        = Read_Soil_Texture(Def_Region, DAS_Data_Path, Resolution_Name, Region_Name, Row_Numbers, Col_Numbers, Corner_Row_Index, Corner_Col_Index)
+       # Sand_Top_Region, Clay_Top_Region, Organic_Top_Region, Bulk_Density_Top_Region, Sand_Sub_Region, Clay_Sub_Region, Organic_Sub_Region, Bulk_Density_Sub_Region \
+       # = Read_Soil_Texture(Def_Region, DAS_Data_Path, Resolution_Name, Region_Name, Row_Numbers, Col_Numbers, Corner_Row_Index, Corner_Col_Index)
         
         print "*******************************Read CLM mksurfdata"
         mksurfdata_NC_FileName_In = DAS_Data_Path+"SysModel/CLM/tools/" + fsurdat_name
@@ -536,7 +536,7 @@ def DAS_Driver(mpi4py_comm, mpi4py_null, mpi4py_rank,  mpi4py_size, mpi4py_name,
         Bare_Grid_Index = numpy.where(PFT_Dominant_Index == 0)
         #Bare_Grid_Index = numpy.where(PCT_PFT[0,:,:] == 100)
         print "numpy.size(Bare_Grid_Index)",numpy.size(Bare_Grid_Index)
-        for Soil_Layer_Index in range(Soil_Layer_Num):
+        for Soil_Layer_Index in range(10):
             watopt[Soil_Layer_Index,:,:][Bare_Grid_Index] = watfc[Soil_Layer_Index,:,:][Bare_Grid_Index]
             watdry[Soil_Layer_Index,:,:][Bare_Grid_Index] = Teta_Residual[Soil_Layer_Index,:,:][Bare_Grid_Index]
             #watopt[Soil_Layer_Index,:,:] = Teta_Saturated[Soil_Layer_Index,:,:]
@@ -785,23 +785,23 @@ def DAS_Driver(mpi4py_comm, mpi4py_null, mpi4py_rank,  mpi4py_size, mpi4py_name,
             print "Convert netCDF3 input to netCDF4 for CLM"
             
             subprocess.call(DAS_Depends_Path+"bin/nccopy -k 3 "+DAS_Data_Path + "SysModel/CLM/tools/"+fatmlndfrc_name+" "+DAS_Data_Path + "SysModel/CLM/inputdata/"+fatmlndfrc_name,shell=True)
-            os.remove(DAS_Data_Path + "SysModel/CLM/tools/"+fatmlndfrc_name)
+          #  os.remove(DAS_Data_Path + "SysModel/CLM/tools/"+fatmlndfrc_name)
             subprocess.call(DAS_Depends_Path+"bin/nccopy -d 4 "+DAS_Data_Path + "SysModel/CLM/inputdata/"+fatmlndfrc_name+" "+DAS_Data_Path + "SysModel/CLM/tools/"+fatmlndfrc_name,shell=True)
             
             subprocess.call(DAS_Depends_Path+"bin/nccopy -k 3 "+DAS_Data_Path + "SysModel/CLM/tools/"+fsurdat_name+" "+DAS_Data_Path + "SysModel/CLM/inputdata/"+fsurdat_name,shell=True)
-            os.remove(DAS_Data_Path + "SysModel/CLM/tools/"+fsurdat_name)
+          #  os.remove(DAS_Data_Path + "SysModel/CLM/tools/"+fsurdat_name)
             subprocess.call(DAS_Depends_Path+"bin/nccopy -d 4 "+DAS_Data_Path + "SysModel/CLM/inputdata/"+fsurdat_name+" "+DAS_Data_Path + "SysModel/CLM/tools/"+fsurdat_name,shell=True)
             
             subprocess.call(DAS_Depends_Path+"bin/nccopy -k 3 "+DAS_Data_Path + "SysModel/CLM/inputdata/lnd/clm2/pftdata/"+fpftcon_name+" "+DAS_Data_Path + "SysModel/CLM/inputdata/"+fpftcon_name,shell=True)
-            os.remove(DAS_Data_Path + "SysModel/CLM/inputdata/lnd/clm2/pftdata/"+fpftcon_name)
+          #  os.remove(DAS_Data_Path + "SysModel/CLM/inputdata/lnd/clm2/pftdata/"+fpftcon_name)
             subprocess.call(DAS_Depends_Path+"bin/nccopy -d 4 "+DAS_Data_Path + "SysModel/CLM/inputdata/"+fpftcon_name+" "+DAS_Data_Path + "SysModel/CLM/inputdata/lnd/clm2/pftdata/"+fpftcon_name,shell=True)
             
             subprocess.call(DAS_Depends_Path+"bin/nccopy -k 3 "+DAS_Data_Path + "SysModel/CLM/inputdata/lnd/clm2/rtmdata/"+rdirc_name+" "+DAS_Data_Path + "SysModel/CLM/inputdata/"+rdirc_name,shell=True)
-            os.remove(DAS_Data_Path + "SysModel/CLM/inputdata/lnd/clm2/rtmdata/"+rdirc_name)
+          #  os.remove(DAS_Data_Path + "SysModel/CLM/inputdata/lnd/clm2/rtmdata/"+rdirc_name)
             subprocess.call(DAS_Depends_Path+"bin/nccopy -d 4 "+DAS_Data_Path + "SysModel/CLM/inputdata/"+rdirc_name+" "+DAS_Data_Path + "SysModel/CLM/inputdata/lnd/clm2/rtmdata/"+rdirc_name,shell=True)
             
             subprocess.call(DAS_Depends_Path+"bin/nccopy -k 3 "+DAS_Data_Path + "SysModel/CLM/inputdata/lnd/clm2/ndepdata/"+fndepdat_name+" "+DAS_Data_Path + "SysModel/CLM/inputdata/"+fndepdat_name,shell=True)
-            os.remove(DAS_Data_Path + "SysModel/CLM/inputdata/lnd/clm2/ndepdata/"+fndepdat_name)
+          #  os.remove(DAS_Data_Path + "SysModel/CLM/inputdata/lnd/clm2/ndepdata/"+fndepdat_name)
             subprocess.call(DAS_Depends_Path+"bin/nccopy -d 4 "+DAS_Data_Path + "SysModel/CLM/inputdata/"+fndepdat_name+" "+DAS_Data_Path + "SysModel/CLM/inputdata/lnd/clm2/ndepdata/"+fndepdat_name,shell=True)        
         
         if (Def_First_Run == -1) and Ensemble_Number > 1:
@@ -895,11 +895,11 @@ def DAS_Driver(mpi4py_comm, mpi4py_null, mpi4py_rank,  mpi4py_size, mpi4py_name,
             NC_File_Out_Assimilation_2_Constant.variables['CLM_Soil_Layer_Thickness'][7, :, :] = Soil_Thickness[7]
             NC_File_Out_Assimilation_2_Constant.variables['CLM_Soil_Layer_Thickness'][8, :, :] = Soil_Thickness[8]
             NC_File_Out_Assimilation_2_Constant.variables['CLM_Soil_Layer_Thickness'][9, :, :] = Soil_Thickness[9]
-            NC_File_Out_Assimilation_2_Constant.variables['CLM_Soil_Layer_Thickness'][10, :, :] = Soil_Thickness[10]
-            NC_File_Out_Assimilation_2_Constant.variables['CLM_Soil_Layer_Thickness'][11, :, :] = Soil_Thickness[11]
-            NC_File_Out_Assimilation_2_Constant.variables['CLM_Soil_Layer_Thickness'][12, :, :] = Soil_Thickness[12]
-            NC_File_Out_Assimilation_2_Constant.variables['CLM_Soil_Layer_Thickness'][13, :, :] = Soil_Thickness[13]
-            NC_File_Out_Assimilation_2_Constant.variables['CLM_Soil_Layer_Thickness'][14, :, :] = Soil_Thickness[14]
+            #NC_File_Out_Assimilation_2_Constant.variables['CLM_Soil_Layer_Thickness'][10, :, :] = Soil_Thickness[10]
+            #NC_File_Out_Assimilation_2_Constant.variables['CLM_Soil_Layer_Thickness'][11, :, :] = Soil_Thickness[11]
+            #NC_File_Out_Assimilation_2_Constant.variables['CLM_Soil_Layer_Thickness'][12, :, :] = Soil_Thickness[12]
+            #NC_File_Out_Assimilation_2_Constant.variables['CLM_Soil_Layer_Thickness'][13, :, :] = Soil_Thickness[13]
+            #NC_File_Out_Assimilation_2_Constant.variables['CLM_Soil_Layer_Thickness'][14, :, :] = Soil_Thickness[14]
             
             NC_File_Out_Assimilation_2_Constant.variables['CLM_Soil_Layer_Thickness_Cumsum'][:,:,:] = numpy.cumsum(numpy.asarray(NC_File_Out_Assimilation_2_Constant.variables['CLM_Soil_Layer_Thickness'][:,:,:]), axis=0)
             
