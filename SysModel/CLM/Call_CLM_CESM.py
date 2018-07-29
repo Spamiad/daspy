@@ -75,7 +75,7 @@ def Write_seq_maps(seq_maps_file_name, DAS_Data_Path, Row_Numbers_String, Col_Nu
     seq_maps_file.write("ocn2wav_smapname: 'idmap'\n")
     seq_maps_file.write("ocn2wav_smaptype: 'Y'\n")
     seq_maps_file.write("rof2lnd_fmapname: "+repr(DAS_Data_Path+"/SysModel/CLM/tools/map_"+Row_Numbers_String+"x"+Col_Numbers_String+"_"+Region_Name+"_TO_"+Row_Numbers_String+"x"+Col_Numbers_String+"_"+Region_Name+"_aave.nc")+"\n")
-    seq_maps_file.write("rof2lnd_fmaptype: 'Y'\n")
+
     seq_maps_file.write("rof2lnd_smapname: "+repr(DAS_Data_Path+"/SysModel/CLM/tools/map_"+Row_Numbers_String+"x"+Col_Numbers_String+"_"+Region_Name+"_TO_"+Row_Numbers_String+"x"+Col_Numbers_String+"_"+Region_Name+"_aave.nc")+"\n")
     seq_maps_file.write("rof2lnd_smaptype: 'Y'\n")
     seq_maps_file.write("rof2ocn_fmapname: "+repr(DAS_Data_Path+"/SysModel/CLM/tools/map_"+Row_Numbers_String+"x"+Col_Numbers_String+"_"+Region_Name+"_TO_"+Row_Numbers_String+"x"+Col_Numbers_String+"_"+Region_Name+"_aave.nc")+"\n")
@@ -92,14 +92,14 @@ def Write_datm_atm_in(datm_atm_in_file_name, datm_streams_txt_file_name_rad, dat
     datm_atm_in_file.write("&shr_strdata_nml\n")
     datm_atm_in_file.write(" dataMode = 'CLMNCEP'\n")
     datm_atm_in_file.write(" domainFile = "+repr(domain_file_path+domain_name)+ "\n")
-    datm_atm_in_file.write(" dtlimit = 10000000000000000,1000000000000000\n")
+    datm_atm_in_file.write(" dtlimit = 1000000000000,1000000000000,1000000000,1000000000000,1000000000000,1000000000000,1000000000000,1000000000000\n")
     datm_atm_in_file.write(" fillalgo = 'copy','copy','copy','copy'\n")
     datm_atm_in_file.write(" fillmask = 'nomask','nomask','nomask','nomask'\n")
     datm_atm_in_file.write(" mapalgo  = 'bilinear','bilinear','bilinear','bilinear'\n")
     datm_atm_in_file.write(" mapmask  = 'nomask','nomask','nomask','nomask'\n")
     datm_atm_in_file.write(" streams  = "+repr(datm_streams_txt_file_name_rad + " " +align_year+" "+first_year+" "+last_year+" ")+","+"\n")
-	datm_atm_in_file.write("            "+repr(datm_streams_txt_file_name_prec + " " +align_year+" "+first_year+" "+last_year+" ")+","+"\n")
-	datm_atm_in_file.write("            "+repr(datm_streams_txt_file_name_tair + " " +align_year+" "+first_year+" "+last_year+" ")+","+"\n")
+    datm_atm_in_file.write("            "+repr(datm_streams_txt_file_name_prec + " " +align_year+" "+first_year+" "+last_year+" ")+","+"\n")
+    datm_atm_in_file.write("            "+repr(datm_streams_txt_file_name_tair + " " +align_year+" "+first_year+" "+last_year+" ")+","+"\n")
     datm_atm_in_file.write("            "+repr(presaero_stream_txt_file_name +" 1 1 1")+"\n")
     datm_atm_in_file.write(" taxMode  = 'cycle','cycle','cycle','cycle'\n")
     datm_atm_in_file.write(" tintalgo = 'coszen','nearest','linear','linear'\n")
@@ -130,38 +130,41 @@ def Write_datm_streams_txt_rad(datm_streams_txt_file_name_rad, Def_SpinUp, domai
     datm_streams_txt.write("      <fieldInfo>\n")
     datm_streams_txt.write("         <variableNames>\n")
     datm_streams_txt.write("            FSDS     swdn\n")
-    datm_streams_txt.write("            FLDS     lwdn\n")    
+    #datm_streams_txt.write("            FLDS     lwdn\n")    
     datm_streams_txt.write("         </variableNames>\n")
     datm_streams_txt.write("         <filePath>\n")
-    datm_streams_txt.write("            "+forcing_file_path+"/rad"+"\n")
+    datm_streams_txt.write("            "+forcing_file_path+"\n")
     datm_streams_txt.write("         </filePath>\n")
     datm_streams_txt.write("         <fileNames>\n")
     
     #print start_ymd,str.split(start_ymd),stop_ymd,str.split(stop_ymd)
     #print str.split(start_ymd)[0][0:4],str.split(start_ymd)[0][4:6],str.split(start_ymd)[0][6:8]
-    
-    Datetime_Start = datetime.datetime(string.atoi(str.split(start_ymd)[0][0:4]), string.atoi(str.split(start_ymd)[0][4:6]), string.atoi(str.split(start_ymd)[0][6:8]), 00, 00)
-    Datetime_Stop = datetime.datetime(string.atoi(str.split(stop_ymd)[0][0:4]), string.atoi(str.split(stop_ymd)[0][4:6]), string.atoi(str.split(stop_ymd)[0][6:8]), 00, 00)
+
+    start_ymd_tmp = "20151201"
+    stop_ymd_tmp = "20170131"
+
+    Datetime_Start = datetime.datetime(string.atoi(str.split(start_ymd_tmp)[0][0:4]), string.atoi(str.split(start_ymd_tmp)[0][4:6]), string.atoi(str.split(start_ymd_tmp)[0][6:8]), 00, 00)
+    Datetime_Stop = datetime.datetime(string.atoi(str.split(stop_ymd_tmp)[0][0:4]), string.atoi(str.split(stop_ymd_tmp)[0][4:6]), string.atoi(str.split(stop_ymd_tmp)[0][6:8]), 00, 00)
 
     #print Datetime_Start,Datetime_Stop,(Datetime_Stop - Datetime_Start).days
-        
-            
+
+    
     Datetime_Stop_Temp = Datetime_Start
     while Datetime_Stop_Temp <= Datetime_Stop:
-        
+
 #            if calendar.isleap(Datetime_Stop_Temp.year):
 #                if Datetime_Stop_Temp == datetime.datetime(Datetime_Stop_Temp.year,2,29):
 #                    # Add the Delta Days
 #                    data_delta = datetime.timedelta(days=1)
 #                    Datetime_Stop_Temp = Datetime_Stop_Temp + data_delta
-                
+	
         if Datetime_Stop_Temp.day < 10:
             Day_String = '00'+str(Datetime_Stop_Temp.day)
         elif Datetime_Stop_Temp.day > 10 and Datetime_Stop_Temp.day < 100:
             Day_String = '0'+str(Datetime_Stop_Temp.day)
         else:
             Day_String = str(Datetime_Stop_Temp.day)
-        
+
         # If the Month or Day is one-digit number, then add '0' in front of it.
         if len(str(Datetime_Stop_Temp.month)) == 1:
             Month = '0' + str(Datetime_Stop_Temp.month)
@@ -171,29 +174,29 @@ def Write_datm_streams_txt_rad(datm_streams_txt_file_name_rad, Def_SpinUp, domai
             Day = '0' + str(Datetime_Stop_Temp.day)
         else:
             Day = str(Datetime_Stop_Temp.day)
-        
+
         # MODIS Date
         #print Datetime_Stop_Temp.year,Datetime_Stop_Temp.month,Datetime_Stop_Temp.day
         #print str(Datetime_Stop_Temp.year),Month,Day
-        OutputDate = str(Datetime_Stop_Temp.year) + '-' + Month + '-' + Day
-        
-        NC_FileName = str(Datetime_Stop_Temp.year) + '-' + Month + '-' + Day + "_rad.nc"                
+        OutputDate = str(Datetime_Stop_Temp.year) + '_' + Month + '_' + Day
+
+        NC_FileName = str(Datetime_Stop_Temp.year) + '_' + Month + '_' + Day + "_rad.nc"                
         datm_streams_txt.write("            "+NC_FileName+"\n")
-            
+    
         # Add the Delta Days
         data_delta = datetime.timedelta(days=1)
         Datetime_Stop_Temp = Datetime_Stop_Temp + data_delta
-                         
-                    
-                
+		 
+	    
+	
     datm_streams_txt.write("         </fileNames>\n")
     datm_streams_txt.write("         <offset>\n")
-    datm_streams_txt.write("            -5400\n")
+    datm_streams_txt.write("            0\n")
     datm_streams_txt.write("         </offset>\n")
     datm_streams_txt.write("      </fieldInfo>\n")
     datm_streams_txt.write("\n")
     datm_streams_txt.close()
-	
+
 def Write_datm_streams_txt_prec(datm_streams_txt_file_name_prec, Def_SpinUp, domain_file_path,domain_name, rdirc_name,forcing_file_path,start_ymd,stop_ymd):
     datm_streams_txt = open(datm_streams_txt_file_name_prec,'w')
     datm_streams_txt.write("      <dataSource>\n")
@@ -219,15 +222,18 @@ def Write_datm_streams_txt_prec(datm_streams_txt_file_name_prec, Def_SpinUp, dom
     datm_streams_txt.write("            PRECTmms precn\n")
     datm_streams_txt.write("         </variableNames>\n")
     datm_streams_txt.write("         <filePath>\n")
-    datm_streams_txt.write("            "+forcing_file_path+"/prec"+"\n")
+    datm_streams_txt.write("            "+forcing_file_path+"\n")
     datm_streams_txt.write("         </filePath>\n")
     datm_streams_txt.write("         <fileNames>\n")
-    
-    #print start_ymd,str.split(start_ymd),stop_ymd,str.split(stop_ymd)
-    #print str.split(start_ymd)[0][0:4],str.split(start_ymd)[0][4:6],str.split(start_ymd)[0][6:8]
-    
-    Datetime_Start = datetime.datetime(string.atoi(str.split(start_ymd)[0][0:4]), string.atoi(str.split(start_ymd)[0][4:6]), string.atoi(str.split(start_ymd)[0][6:8]), 00, 00)
-    Datetime_Stop = datetime.datetime(string.atoi(str.split(stop_ymd)[0][0:4]), string.atoi(str.split(stop_ymd)[0][4:6]), string.atoi(str.split(stop_ymd)[0][6:8]), 00, 00)
+
+#print start_ymd,str.split(start_ymd),stop_ymd,str.split(stop_ymd)
+#print str.split(start_ymd)[0][0:4],str.split(start_ymd)[0][4:6],str.split(start_ymd)[0][6:8]
+
+    start_ymd_tmp = "20151201"
+    stop_ymd_tmp = "20170131"
+
+    Datetime_Start = datetime.datetime(string.atoi(str.split(start_ymd_tmp)[0][0:4]), string.atoi(str.split(start_ymd_tmp)[0][4:6]), string.atoi(str.split(start_ymd_tmp)[0][6:8]), 00, 00)
+    Datetime_Stop = datetime.datetime(string.atoi(str.split(stop_ymd_tmp)[0][0:4]), string.atoi(str.split(stop_ymd_tmp)[0][4:6]), string.atoi(str.split(stop_ymd_tmp)[0][6:8]), 00, 00)
 
     #print Datetime_Start,Datetime_Stop,(Datetime_Stop - Datetime_Start).days
         
@@ -261,9 +267,10 @@ def Write_datm_streams_txt_prec(datm_streams_txt_file_name_prec, Def_SpinUp, dom
         # MODIS Date
         #print Datetime_Stop_Temp.year,Datetime_Stop_Temp.month,Datetime_Stop_Temp.day
         #print str(Datetime_Stop_Temp.year),Month,Day
-        OutputDate = str(Datetime_Stop_Temp.year) + '-' + Month + '-' + Day
         
-        NC_FileName = str(Datetime_Stop_Temp.year) + '-' + Month + '-' + Day + "_prec.nc"                
+        OutputDate = str(Datetime_Stop_Temp.year) + '_' + Month + '_' + Day
+        
+        NC_FileName = str(Datetime_Stop_Temp.year) + '_' + Month + '_' + Day + "_tp.nc"                
         datm_streams_txt.write("            "+NC_FileName+"\n")
             
         # Add the Delta Days
@@ -271,10 +278,12 @@ def Write_datm_streams_txt_prec(datm_streams_txt_file_name_prec, Def_SpinUp, dom
         Datetime_Stop_Temp = Datetime_Stop_Temp + data_delta
                          
                     
-                
+    #datm_streams_txt.write("            2010_01_tp.nc\n")    
+
+            
     datm_streams_txt.write("         </fileNames>\n")
     datm_streams_txt.write("         <offset>\n")
-    datm_streams_txt.write("            -5400\n")
+    datm_streams_txt.write("             0\n")
     datm_streams_txt.write("         </offset>\n")
     datm_streams_txt.write("      </fieldInfo>\n")
     datm_streams_txt.write("\n")
@@ -310,15 +319,19 @@ def Write_datm_streams_txt_tair(datm_streams_txt_file_name_tair, Def_SpinUp, dom
     datm_streams_txt.write("            RH       rh\n")
     datm_streams_txt.write("         </variableNames>\n")
     datm_streams_txt.write("         <filePath>\n")
-    datm_streams_txt.write("            "+forcing_file_path+"/tair"+"\n")
+    datm_streams_txt.write("            "+forcing_file_path+"\n")
     datm_streams_txt.write("         </filePath>\n")
     datm_streams_txt.write("         <fileNames>\n")
     
     #print start_ymd,str.split(start_ymd),stop_ymd,str.split(stop_ymd)
     #print str.split(start_ymd)[0][0:4],str.split(start_ymd)[0][4:6],str.split(start_ymd)[0][6:8]
-    
-    Datetime_Start = datetime.datetime(string.atoi(str.split(start_ymd)[0][0:4]), string.atoi(str.split(start_ymd)[0][4:6]), string.atoi(str.split(start_ymd)[0][6:8]), 00, 00)
-    Datetime_Stop = datetime.datetime(string.atoi(str.split(stop_ymd)[0][0:4]), string.atoi(str.split(stop_ymd)[0][4:6]), string.atoi(str.split(stop_ymd)[0][6:8]), 00, 00)
+   
+    start_ymd_tmp = "20151201"
+    stop_ymd_tmp = "20170131"
+
+ 
+    Datetime_Start = datetime.datetime(string.atoi(str.split(start_ymd_tmp)[0][0:4]), string.atoi(str.split(start_ymd_tmp)[0][4:6]), string.atoi(str.split(start_ymd_tmp)[0][6:8]), 00, 00)
+    Datetime_Stop = datetime.datetime(string.atoi(str.split(stop_ymd_tmp)[0][0:4]), string.atoi(str.split(stop_ymd_tmp)[0][4:6]), string.atoi(str.split(stop_ymd_tmp)[0][6:8]), 00, 00)
 
     #print Datetime_Start,Datetime_Stop,(Datetime_Stop - Datetime_Start).days
         
@@ -352,9 +365,9 @@ def Write_datm_streams_txt_tair(datm_streams_txt_file_name_tair, Def_SpinUp, dom
         # MODIS Date
         #print Datetime_Stop_Temp.year,Datetime_Stop_Temp.month,Datetime_Stop_Temp.day
         #print str(Datetime_Stop_Temp.year),Month,Day
-        OutputDate = str(Datetime_Stop_Temp.year) + '-' + Month + '-' + Day
+        OutputDate = str(Datetime_Stop_Temp.year) + '_' + Month + '_' + Day
         
-        NC_FileName = str(Datetime_Stop_Temp.year) + '-' + Month + '-' + Day + "_tair.nc"                
+        NC_FileName = str(Datetime_Stop_Temp.year) + '_' + Month + '_' + Day + "_tair.nc"                
         datm_streams_txt.write("            "+NC_FileName+"\n")
             
         # Add the Delta Days
@@ -488,7 +501,14 @@ def Write_drv_in(Def_PP, Model_Driver, Def_CESM_Multi_Instance,Ensemble_Number,n
     drv_in_file.write(" samegrid_ow = .false.\n")
     drv_in_file.write(" samegrid_ro = .false.\n")
     drv_in_file.write(" shr_map_dopole = .true.\n")
-    drv_in_file.write(" start_type = "+start_type+"\n")
+    
+    # 23/03/2016 dominik
+    #if start_ymd == "20100101": 
+    drv_in_file.write(" start_type = 'continue'\n")
+    #else:
+    #drv_in_file.write(" start_type = "+start_type+"\n")
+
+
     drv_in_file.write(" tchkpt_dir = './timing/checkpoints'\n")
     drv_in_file.write(" timing_dir = './timing'\n")
     drv_in_file.write(" username = "+username+"\n")
@@ -573,7 +593,7 @@ def Write_drv_in(Def_PP, Model_Driver, Def_CESM_Multi_Instance,Ensemble_Number,n
     drv_in_file.write(" profile_global_stats = .false.\n")
     drv_in_file.write(" profile_single_file = .false.\n")
     if Def_PP == 2 or Def_CESM_Multi_Instance:
-        drv_in_file.write(" profile_timer = 4\n")
+        drv_in_file.write(" profile_timer = 1\n")
     else:
         drv_in_file.write(" profile_timer = 1\n")
     drv_in_file.write("/\n")
@@ -657,17 +677,28 @@ def Write_lnd_in(Run_Dir, lnd_in_file_name,Model_Driver,dtime,rtm_nsteps,domain_
     if Model_Driver == "CLM_45":
         lnd_in_file.write(" more_vertlayers = .false.\n")
     lnd_in_file.write(" nsegspc = 1\n")             # default is 20, but for parflow it should be 1, then the decomposition is right to the row number
-    lnd_in_file.write(" hist_nhtfrq =  " + str(hist_nhtfrq) + "\n")
-    lnd_in_file.write(" hist_mfilt =  " + str(hist_mfilt) + "\n")
+    lnd_in_file.write(" hist_nhtfrq =  " + str(hist_nhtfrq) + ", -24, -24" + "\n")
+    lnd_in_file.write(" hist_mfilt =  " + str(hist_mfilt) + ", 30, 30" + "\n")
     #lnd_in_file.write(" hist_crtinic   = " + hist_crtinic + "\n")
-    lnd_in_file.write(" hist_dov2xy = "+hist_dov2xy+"\n")
+    
+    # changed by dominik 06042016
+    #lnd_in_file.write(" hist_dov2xy = "+hist_dov2xy+"\n")
+    lnd_in_file.write("hist_dov2xy = .true., .true., .false.\n")
+    lnd_in_file.write("hist_type1d_pertape = 'PFTS', 'PFTS', 'PFTS'\n")   
+
     lnd_in_file.write(" hist_ndens = " + str(hist_ndens) + "\n")
-    lnd_in_file.write(" hist_type1d_pertape = " + hist_type1d_pertape + "\n")
+    #lnd_in_file.write(" hist_type1d_pertape = " + hist_type1d_pertape + "\n")
     lnd_in_file.write(" hist_empty_htapes = " + hist_empty_htapes + "\n")
-    lnd_in_file.write(" hist_avgflag_pertape = " + hist_avgflag_pertape + "\n")
+    lnd_in_file.write(" hist_avgflag_pertape = " + hist_avgflag_pertape + ", 'A', 'A'" + "\n")
     lnd_in_file.write(" hist_fincl1 = " + hist_fincl1 + "\n")
     lnd_in_file.write(" hist_fexcl1 = " + hist_fexcl1 + "\n")
     lnd_in_file.write(" outnc_large_files = .true.\n")
+
+    # 20-03.2016 dominik
+    lnd_in_file.write(" hist_fincl2 = 'H2OSOI'" + "\n")
+    
+    # 06-04.2016 dominik
+    lnd_in_file.write(" hist_fincl3 = 'TLAI'" + "\n")
     
     if Model_Driver == "CLM_BGC_SpinUp":
         lnd_in_file.write(" spinup_state = 1\n")
@@ -876,8 +907,8 @@ def Call_CLM_3D(Def_First_Run,Def_CESM_Multi_Instance, Run_Dir_Home, Run_Dir_Mul
             datm_atm_in_file_name = "datm_atm_in"
 			
             datm_streams_txt_file_name_rad = "datm.streams.rad.txt"
-			datm_streams_txt_file_name_prec = "datm.streams.prec.txt"
-			datm_streams_txt_file_name_tair = "datm.streams.tair.txt"
+	    datm_streams_txt_file_name_prec = "datm.streams.prec.txt"
+	    datm_streams_txt_file_name_tair = "datm.streams.tair.txt"
 			
             presaero_stream_txt_file_name = "presaero.stream.txt"
             
@@ -886,8 +917,8 @@ def Call_CLM_3D(Def_First_Run,Def_CESM_Multi_Instance, Run_Dir_Home, Run_Dir_Mul
                 
                 Forcing_File_Path = Forcing_File_Path_Array[0]
                 Write_datm_streams_txt_rad(datm_streams_txt_file_name_rad, Def_SpinUp, domain_file_path,domain_name, rdirc_name, Forcing_File_Path, start_ymd, stop_ymd)
-				Write_datm_streams_txt_prec(datm_streams_txt_file_name_prec, Def_SpinUp, domain_file_path,domain_name, rdirc_name, Forcing_File_Path, start_ymd, stop_ymd)
-				Write_datm_streams_txt_tair(datm_streams_txt_file_name_tair, Def_SpinUp, domain_file_path,domain_name, rdirc_name, Forcing_File_Path, start_ymd, stop_ymd)
+		Write_datm_streams_txt_prec(datm_streams_txt_file_name_prec, Def_SpinUp, domain_file_path,domain_name, rdirc_name, Forcing_File_Path, start_ymd, stop_ymd)
+		Write_datm_streams_txt_tair(datm_streams_txt_file_name_tair, Def_SpinUp, domain_file_path,domain_name, rdirc_name, Forcing_File_Path, start_ymd, stop_ymd)
                 
                 Write_presaero_stream_txt(presaero_stream_txt_file_name,aero_file_path,aero_file_name)
                 
@@ -936,9 +967,9 @@ def Call_CLM_3D(Def_First_Run,Def_CESM_Multi_Instance, Run_Dir_Home, Run_Dir_Mul
                     
                     datm_atm_in_file_name = "datm_atm_in_"+Ens_Index_String
 					
-					datm_streams_txt_file_name_rad = "datm.streams.rad.txt_"+Ens_Index_String
-					datm_streams_txt_file_name_prec = "datm.streams.prec.txt_"+Ens_Index_String
-					datm_streams_txt_file_name_tair = "datm.streams.tair.txt_"+Ens_Index_String
+		    datm_streams_txt_file_name_rad = "datm.streams.rad.txt_"+Ens_Index_String
+		    datm_streams_txt_file_name_prec = "datm.streams.prec.txt_"+Ens_Index_String
+		    datm_streams_txt_file_name_tair = "datm.streams.tair.txt_"+Ens_Index_String
 					
 					
                     presaero_stream_txt_file_name = "presaero.stream.txt_"+Ens_Index_String
@@ -947,9 +978,9 @@ def Call_CLM_3D(Def_First_Run,Def_CESM_Multi_Instance, Run_Dir_Home, Run_Dir_Mul
                     
                     Forcing_File_Path = Forcing_File_Path_Array[Ens_Index]
                     
-					Write_datm_streams_txt_rad(datm_streams_txt_file_name_rad, Def_SpinUp, domain_file_path,domain_name, rdirc_name, Forcing_File_Path, start_ymd, stop_ymd)
-					Write_datm_streams_txt_prec(datm_streams_txt_file_name_prec, Def_SpinUp, domain_file_path,domain_name, rdirc_name, Forcing_File_Path, start_ymd, stop_ymd)
-					Write_datm_streams_txt_tair(datm_streams_txt_file_name_tair, Def_SpinUp, domain_file_path,domain_name, rdirc_name, Forcing_File_Path, start_ymd, stop_ymd)
+		    Write_datm_streams_txt_rad(datm_streams_txt_file_name_rad, Def_SpinUp, domain_file_path,domain_name, rdirc_name, Forcing_File_Path, start_ymd, stop_ymd)
+		    Write_datm_streams_txt_prec(datm_streams_txt_file_name_prec, Def_SpinUp, domain_file_path,domain_name, rdirc_name, Forcing_File_Path, start_ymd, stop_ymd)
+		    erite_datm_streams_txt_tair(datm_streams_txt_file_name_tair, Def_SpinUp, domain_file_path,domain_name, rdirc_name, Forcing_File_Path, start_ymd, stop_ymd)
                     
                     Write_presaero_stream_txt(presaero_stream_txt_file_name,aero_file_path,aero_file_name)
                     
@@ -992,13 +1023,17 @@ def Call_CLM_3D(Def_First_Run,Def_CESM_Multi_Instance, Run_Dir_Home, Run_Dir_Mul
         os.chdir(Run_Dir)
         
         datm_atm_in_file_name = "datm_atm_in"
-        datm_streams_txt_file_name = "datm.streams.txt"
+        datm_streams_txt_file_name_rad = "datm.streams.rad.txt"
+        datm_streams_txt_file_name_prec = "datm.streams.prec.txt"
+        datm_streams_txt_file_name_tair = "datm.streams.tair.txt"
         presaero_stream_txt_file_name = "presaero.stream.txt"
         
         if fcomm_rank == 0:
             Write_datm_atm_in(datm_atm_in_file_name, datm_streams_txt_file_name_rad, datm_streams_txt_file_name_prec, datm_streams_txt_file_name_tair, presaero_stream_txt_file_name, domain_file_path,domain_name, rdirc_name,align_year,first_year,last_year)
             
-            Write_datm_streams_txt(datm_streams_txt_file_name, Def_SpinUp, domain_file_path,domain_name, rdirc_name, Forcing_File_Path, start_ymd, stop_ymd)
+            Write_datm_streams_txt_rad(datm_streams_txt_file_name_rad, Def_SpinUp, domain_file_path,domain_name, rdirc_name, Forcing_File_Path, start_ymd, stop_ymd)
+            Write_datm_streams_txt_prec(datm_streams_txt_file_name_prec, Def_SpinUp, domain_file_path,domain_name, rdirc_name, Forcing_File_Path, start_ymd, stop_ymd)
+            Write_datm_streams_txt_tair(datm_streams_txt_file_name_tair, Def_SpinUp, domain_file_path,domain_name, rdirc_name, Forcing_File_Path, start_ymd, stop_ymd)
             
             Write_presaero_stream_txt(presaero_stream_txt_file_name,aero_file_path,aero_file_name)
             
@@ -1058,3 +1093,4 @@ def Call_CLM_3D(Def_First_Run,Def_CESM_Multi_Instance, Run_Dir_Home, Run_Dir_Mul
     return
 
     
+
