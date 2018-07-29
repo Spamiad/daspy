@@ -5,17 +5,17 @@ sys.path.append(path)
 sys.path.append(path + '/Utilities')
 
 def Call_CMEM(Def_Print,CMEM_Work_Path,rowNum_Out,colNum_Out,Latitude,Longitude,Tair_Mat,Tair_Time,Clay_Mat,Sand_Mat,ECOCVL_Mat,ECOCVH_Mat,ECOTVL_Mat,ECOTVH_Mat,ECOWAT_Mat,ECOLAIL_Mat,
-              RSN_Mat,SD_Mat,STL_Mat,SWVL_Mat,TSKIN_Mat,Z_Mat,Frequency,View_Angle):
+              RSN_Mat,SD_Mat,STL_Mat,SWVL_Mat,TSKIN_Mat,Z_Mat,Frequency,View_Angle, Datetime_Stop):
     
     if Def_Print:
         print "CMEM is Running!"
     os.chdir(CMEM_Work_Path)
     
     Input_File = open("input",'w')
-    Input_File.write("&NAMOPT CIDIEL='Dobson',\n")
+    Input_File.write("&NAMOPT CIDIEL='Mironov',\n")
     Input_File.write("       CITEFF='Wigneron',\n")
-    Input_File.write("       CISMR='Wilheit',\n")
-    Input_File.write("       CIRGHR='Wtexture',\n")
+    Input_File.write("       CISMR='Fresnel',\n")
+    Input_File.write("       CIRGHR='Choudhury',\n")
     Input_File.write("       CIVEG='Wigneron',\n")
     Input_File.write("       CIATM='Pellarin',\n")       
     Input_File.write("       CITVEG='Tair',\n")
@@ -27,12 +27,11 @@ def Call_CMEM(Def_Print,CMEM_Work_Path,rowNum_Out,colNum_Out,Latitude,Longitude,
     Input_File.write("       /\n")
     Input_File.write("&NAMLEV NLAY_SOIL_MW=100,\n")
     Input_File.write("        NLAY_SOIL_LS=7,\n")
-    Input_File.write("        NOBS_ATM=,\n")
     Input_File.write("       /\n")
     Input_File.write("&NAMDEF LOFFCMEM=.True.,\n")
     Input_File.write("        LOFIELDEXP=.False.,\n")
     Input_File.write("        LGPRINT=.False.,\n")
-    Input_File.write("        JPHISTLEV=1,\n")
+    Input_File.write("        JPHISTLEV=2,\n")
     Input_File.write("        CFINOUT='netcdf',\n")
     Input_File.write("        LOMASK_OCEAN=.False.,\n")
     Input_File.write("        LOMASK_AUTO=.True.,\n")
@@ -687,13 +686,88 @@ def Call_CMEM(Def_Print,CMEM_Work_Path,rowNum_Out,colNum_Out,Latitude,Longitude,
         subprocess.call("./cmem &> /dev/null",shell=True)
     time.sleep(1)
     #================================== Read the Results
-    OutFile_Name = glob.glob('out*.nc')
+    OutFile_Name = glob.glob('out_level1*.nc')
     
     TB = netCDF4.Dataset(OutFile_Name[0], 'r')
     TBH = TB.variables['TBH'][0,0,:,:]
     TBV = TB.variables['TBV'][0,0,:,:]
     EFFECTIVE_TEMP = TB.variables['EFFECTIVE_TEMP'][0,0,:,:]
     TB.close()
+
+    # dominik 08/05/2017
+    OutFile_Name = glob.glob('out_level2*.nc')
+
+    ATM = netCDF4.Dataset(OutFile_Name[0], 'r')
+    ATMH = ATM.variables['TB_ATM_UP'][0,0,:,:]
+    ATM.close()
+
+    TBH = TBH - ATMH
+
+
+    # dominik 17/05/2016, for anomaly assimilation
+    hour = Datetime_Stop.strftime('%H')
+    hour = str(int(hour)*3600)
+
+    now = Datetime_Stop.strftime('%Y_%m_%d_%H')
+    doy = Datetime_Stop.timetuple().tm_yday
+    doy = doy-1
+
+    # only for 2012 / 2016
+    if doy > 59:
+        doy = doy-1
     
+    #TBH_Clim_Dir = '/work/jicg41/jicg4152/daspy/DAS_Data/ObsModel/CMEM/Australia_TBan/'
+    #TBH_Clim_Dir = '/homec/jicg41/jicg4152/daspy/DAS_Data/Observation/RemoteSensing/Australia_SMAP_clim/'
+
+    # dominik 06/05/2017 for SMAP anomaly assimilation
+    #TBH_Clim_Name = TBH_Clim_Dir + 'Australia.TB.' + hour + '.2010_2015_climatology.nc'
+    #TBH_Clim_Name = TBH_Clim_Dir + 'SMAP.CMEM.Gabrielle.short.' + hour + '.nc'
+
+    # LAI study
+    TBH_Clim_Dir = '/homec/jicg41/jicg4152/daspy/DAS_Data/Observation/RemoteSensing/LAI_clim/'
+    TBH_Clim_Name = TBH_Clim_Dir + 'cmem.climatologypoly.dynLAIidentSM.' + hour + '.nc'
+
+
+    TBH_Clim_id = netCDF4.Dataset(TBH_Clim_Name, 'r')
+
+
+    #TBH_Clim = TBH_Clim_id.variables['variable'][doy,:,:]
+    TBH_Clim = TBH_Clim_id.variables['TBH'][doy,:,:]
+
+    TBH_Clim = numpy.flipud(TBH_Clim)
+
+    TBH_Clim_id.close()
+
+    TBH = TBH - TBH_Clim
+    
+    # dominik 07/06/2016
+    #where_are_NaNs = isnan(TBH)
+    #TBH[where_are_NaNs] = -9999.0
+    #----------------------------
+    
+    tbh_clim_out = netCDF4.Dataset('TBH_An_' + now + '.nc','w')
+    lon = tbh_clim_out.createDimension('lon',180)
+    lat = tbh_clim_out.createDimension('lat',120)
+
+    lons = numpy.arange(110.125, 155, 0.25)
+    lats = numpy.arange(-39.875, -10, 0.25)
+    
+    latitudes = tbh_clim_out.createVariable('latitude', numpy.float32,('lat',))
+    longitudes = tbh_clim_out.createVariable('longitude', numpy.float32,('lon',))
+    latitudes[:] = lats
+    longitudes[:] = lons
+
+    varout = tbh_clim_out.createVariable('anomaly',numpy.float32,('lat','lon'))
+    varout[:] = TBH
+    tbh_clim_out.close() 
+
+    #-------------------------------------------------------
+    # dominik 29/02/2016, rename cmem output to other folder
+    #cmem_time = str(datetime.datetime.now()).split('.')[0]
+    cmemoutfile = now
+    cmemoutfile = str(cmemoutfile)
+    cmemoutfile = 'CMEM_' + cmemoutfile + '.nc'
+    os.rename(OutFile_Name[0], str(cmemoutfile))
+    print('finished ObsModel/CLM/Call_CMEM.py') 
     return TBH,TBV,EFFECTIVE_TEMP
     
