@@ -1,5 +1,9 @@
 import numpy, time, multiprocessing, gc, os
 
+#os.system("taskset -p 0xff %d" % os.getpid())
+#os.system("taskset -pc 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47 %d" % os.getpid())
+
+
 def letkf(letkf_common,nx,ny,nbv,num_local_obs,eps,Mask,Obs_Grid,h,R,Model_State,E0_SysModel,E0_ObsModel,
           Corelation_Par,GridSize_Sys,GridSize_Obs,Bias_Forecast_Model_Option, Bias_Observation_Model_Option,
           msw_infl,parm_infl,Alpha_Inflation,nthreads,Def_Print,Parameter_Optimization_Flag,Parameter_Regularization,
@@ -13,6 +17,9 @@ def letkf(letkf_common,nx,ny,nbv,num_local_obs,eps,Mask,Obs_Grid,h,R,Model_State
 #          Par_Uniform_STD,Par_Sens_Dim,nx_copy,Def_Localization)
 #    os.abort()
     # 4D-LETKF
+
+    #os.system("taskset -pc 0-47 %d" % os.getpid())
+
     
     bias_a = []
     xa = []
@@ -148,18 +155,25 @@ def letkf(letkf_common,nx,ny,nbv,num_local_obs,eps,Mask,Obs_Grid,h,R,Model_State
         print "num_local_obs,msw_infl,eps,Corelation_Par,vario_type,Alpha_Inflation,nthreads,Def_Print,Parameter_Optimization_Flag,Parameter_Regularization,Par_Uniform_STD,nx_copy,Def_Localization,GridSize_Sys"
         print num_local_obs,msw_infl,eps,Corelation_Par,vario_type,Alpha_Inflation,nthreads,Def_Print,Parameter_Optimization_Flag,Parameter_Regularization,Par_Uniform_STD,nx_copy,Def_Localization,GridSize_Sys
         
-        if Def_Print >= 2:
+        if Def_Print >= 1:
             print "numpy.min(R),numpy.min(pos_sys),numpy.min(pos_obs),numpy.min(xf),numpy.min(hxf_whole),numpy.min(h),numpy.min(y),numpy.min(parm_infl)"
             print numpy.min(R),numpy.min(pos_sys),numpy.min(pos_obs),numpy.min(xf),numpy.min(hxf_whole),numpy.min(h),numpy.min(y),numpy.min(parm_infl)
             print "numpy.max(R),numpy.max(pos_sys),numpy.max(pos_obs),numpy.max(xf),numpy.max(hxf_whole),numpy.max(h),numpy.max(y),numpy.max(parm_infl)"
             print numpy.max(R),numpy.max(pos_sys),numpy.max(pos_obs),numpy.max(xf),numpy.max(hxf_whole),numpy.max(h),numpy.max(y),numpy.max(parm_infl)
     print ""
+
+
+    print "available cpus for multiprocessing LETKF:"
+    mprocessing = multiprocessing.cpu_count()
+    print mprocessing
     
     xa,innovation,increments,localization_map = letkf_common.call_letkf_2d(num_local_obs,msw_infl,eps,R,Corelation_Par,vario_type,pos_sys,pos_obs,xf,hxf_whole,h,y,\
                                                                            parm_infl,Alpha_Inflation,nthreads,Def_Print,Parameter_Optimization_Flag,\
                                                                            Parameter_Regularization,Par_Uniform_STD,nx_copy,Def_Localization,GridSize_Sys,Normal_Score_Trans, State_Layer_Num,\
                                                                            Bias_Forecast_Model_Option,Bias_Observation_Model_Option,Bias_Model_Uniform_STD,Bias_Obs_Uniform_STD,Model_Inflation_Uniform_STD,
                                                                            minimize_lbfgsb_m,minimize_lbfgsb_iprint,minimize_lbfgsb_epsilon_in,minimize_lbfgsb_factr,minimize_lbfgsb_pgtol)
+    print "+++++++++ called letkf ++++++++++"
+   
 #     if Bias_Forecast_Model_Option == 0:
 #         #print num_local_obs,msw_infl,eps,R,Corelation_Par,vario_type,pos_sys,pos_obs,xf,hxf_whole,h,y,parm_infl,Alpha_Inflation,nthreads,Def_Print,Parameter_Optimization_Flag,Parameter_Regularization,Par_Uniform_STD,nx_copy,Def_Localization,GridSize_Sys
 #         #print letkf_common.call_letkf_2d.__doc__

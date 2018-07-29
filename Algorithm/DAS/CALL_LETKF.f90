@@ -40,6 +40,7 @@ SUBROUTINE CALL_LETKF_2D(nx,ny,nbv,num_local_obs,msw_infl,eps,R,Correlation_Par,
     REAL(8),INTENT(IN) :: Correlation_Par(5,2)    ! Correlation Model Parameter
     CHARACTER(12) :: vario_type    ! Correlation Function Name
     REAL(8),INTENT(IN) :: pos_sys(nx,2)    ! Model Grid Position
+    !REAL(8) :: pos_sys(ny,2)
     REAL(8),INTENT(IN) :: pos_obs(ny,2)    ! Observation Grid Position
     REAL(8),INTENT(IN) :: xf_in(nx,nbv)
     REAL(8),INTENT(IN) :: hxf_whole(nx,nbv)
@@ -80,6 +81,9 @@ SUBROUTINE CALL_LETKF_2D(nx,ny,nbv,num_local_obs,msw_infl,eps,R,Correlation_Par,
     REAL(8) :: Inflation_Fac, xa_median, xa_median_ens(nbv)
     INTEGER ::coeffs_whole_index
 
+    REAL(8) :: rdiag_local(1)  ! dominik, 28/06/2017, to store central observation variance
+
+
         ! Variables for Normal Score Transform
     REAL(8) :: xm_copy(nx), xf(nx,nbv), dxf_copy(nx,nbv)
     REAL(8), ALLOCATABLE :: XF_NNscore(:), XF_Trans(:)
@@ -89,14 +93,39 @@ SUBROUTINE CALL_LETKF_2D(nx,ny,nbv,num_local_obs,msw_infl,eps,R,Correlation_Par,
     INTEGER :: iwt, ierror
     REAL(8) :: wt(nbv), XF_NNscore_Sort(nbv), XF_Trans_Sort(nbv), HXF_NNscore_Sort(nbv), HXF_Trans_Sort(nbv), Observation_NNscore_Sort(1), Observation_Trans_Sort(1), HXF_Trans_Var, HXF_NNscore_Var
     REAL(8) :: zmin,zmax,ltail,ltpar,utail,utpar
-	
+
+    ! 23/09/2016 time assimilation code
+    REAL(8) :: start_xxx, finish_xxx,start_core,finish_core,seconds
+
+    ! 26/10/2016 taskset for cpu affinity
+    CHARACTER(1024) :: execute, executes    
+    INTEGER :: pid
+
+    pid = getpid()
+    !write(execute, "(A11,I5)") "taskset -p ", pid
+    !CALL SYSTEM(execute,executes)
+    !print*, executes
+
+    write (execute, "(A18,I5)") "taskset -pc 0-47 ", pid
+    CALL SYSTEM(execute)
+    !print *, trim(execute)
+    
+    call cpu_time(start_xxx)
+
+
     IF (Def_Print >= 3) THEN
         print*,Def_Print,Parameter_Optimization_Flag,Parameter_Regularization
         print*,Par_Uniform_STD, Par_Sens_Dim,State_DIM_Single_Layer
     END IF
-	
-	
-    CALL OMP_SET_NUM_THREADS(nthreads)
+
+
+    !CALL OMP_SET_NUM_THREADS(nthreads)
+    CALL OMP_SET_NUM_THREADS(32)
+    print*,'LETKF num_procs,max_threads,num_threads'
+    print*,omp_get_num_procs()
+    print*,omp_get_max_threads()
+    print*,omp_get_num_threads()
+
 
     ! because we defined the default values of Bias_Model_Dim and Bias_Obs_Dim are non-zeros, so...
     IF (Bias_Forecast_Model_Option > 0) THEN
@@ -121,6 +150,8 @@ SUBROUTINE CALL_LETKF_2D(nx,ny,nbv,num_local_obs,msw_infl,eps,R,Correlation_Par,
     xf = xf_in
     y = y_in
 
+
+     call cpu_time(start_core)
     !$OMP PARALLEL SHARED(R_Diag) PRIVATE(i)
     !$OMP DO SCHEDULE(STATIC)
     !
@@ -131,133 +162,152 @@ SUBROUTINE CALL_LETKF_2D(nx,ny,nbv,num_local_obs,msw_infl,eps,R,Correlation_Par,
     END DO
     !$OMP END DO NOWAIT
     !$OMP END PARALLEL
+    call cpu_time(finish_core)
+    print*, '("LETKF Time 1 = ",f6.3," seconds.")',finish_core-start_core
 
-    IF (Def_Print >= 3) THEN
+    IF (Def_Print >= 2) THEN
         PRINT*,"R_Diag"
         PRINT*,minval(R_Diag),maxval(R_Diag)
     END IF
-	
-    !$OMP PARALLEL SHARED(hxf,Observation_NNscore,HXF_NNscore) PRIVATE(i,j)
+    
+    Write(*,*) shape(ny)
+    Write(*,*) shape(nbv)
+    Write(*,*) shape(h)
+    Write(*,*) shape(hxf_whole)
+ 
+    call cpu_time(start_core)
+    seconds = omp_get_wtime()
+
+
+    !$OMP PARALLEL SHARED(hxf,Observation_NNscore,hxf_whole,h) PRIVATE(i,j)
     !$OMP DO SCHEDULE(STATIC)
-    !---------------
-    ! analysis step
-    !---------------
-    !
-    ! hxf = H xf
-    !
-	
     DO i=1,ny
         Observation_NNscore(i) = y(i)
         DO j=1,nbv
             hxf(i,j) = DOT_PRODUCT(h(i,:), hxf_whole(:,j))
-        ENDDO
+        END DO
     END DO
     !$OMP END DO NOWAIT
     !$OMP END PARALLEL
-	
-    IF (Def_Print >= 3) THEN
+
+    call cpu_time(finish_core)
+    print*, '("LETKF Time Dot Product cpu time = ",f6.3," seconds.")',finish_core-start_core
+    seconds = omp_get_wtime() - seconds
+    print*,"Dot Product wall time", seconds
+
+    CALL OMP_SET_NUM_THREADS(8)
+
+    IF (Def_Print >= 2) THEN
         PRINT*,"hxf"
         PRINT*,minval(hxf),maxval(hxf)
     END IF
-	
-	
+
+
+    call cpu_time(start_core)
     !$OMP PARALLEL SHARED(xm,xm_copy,XF_NNscore) PRIVATE(i)
     !$OMP DO SCHEDULE(STATIC)
-    !
-    ! ensemble mean -> xm
-    !
-	DO i=1,nx
+    DO i=1,nx
         IF (Normal_Score_Trans == 1) THEN
-            XF_NNscore(((i-1)*nbv+1):i*nbv) = xf(i,:)			
+            XF_NNscore(((i-1)*nbv+1):i*nbv) = xf(i,:)
         END IF
         CALL com_mean(nbv,xf(i,:),xm(i))
         CALL com_mean(nbv,xf_in(i,:),xm_copy(i))
     END DO
     !$OMP END DO NOWAIT
     !$OMP END PARALLEL
+    call cpu_time(finish_core)
+    print*, '("LETKF Time = ",f6.3," seconds.")',finish_core-start_core
     
-    IF (Def_Print >= 3) THEN
+    IF (Def_Print >= 2) THEN
         PRINT*,"xm"
         PRINT*,minval(xm),maxval(xm)
     END IF
-	
+    
+    call cpu_time(start_core)
     !$OMP PARALLEL SHARED(dxf,dxf_copy,xf,xm) PRIVATE(i)
     !$OMP DO SCHEDULE(STATIC)
-    !
-    ! ensemble ptb -> dxf
-    !
     DO i=1,nbv
         dxf(:,i) = xf(:,i) - xm(:)
         dxf_copy(:,i) = xf_in(:,i) - xm_copy(:)
     END DO
     !$OMP END DO NOWAIT
     !$OMP END PARALLEL
+    call cpu_time(finish_core)
+    print*, '("LETKF Time = ",f6.3," seconds.")',finish_core-start_core
 
-    IF (Def_Print >= 3) THEN
+    IF (Def_Print >= 2) THEN
         PRINT*,"dxf"
         PRINT*,minval(dxf),maxval(dxf)
     END IF
-	
+
+
+    call cpu_time(start_core)
     !$OMP PARALLEL SHARED(hxfm,hxf,hxf_var,R_Diag) PRIVATE(i,Inflation_Fac)
     !$OMP DO SCHEDULE(STATIC)
-    !
-    ! hxfm = mean(H xf)
-    !
     DO i=1,ny
         CALL com_mean(nbv,hxf(i,:),hxfm(i))
 
         !modify the R according to the model variance
         CALL com_covar(nbv,hxf(i,:),hxf(i,:),hxf_var(i))
-        IF (R_Diag(i) > hxf_var(i)) THEN
-            Inflation_Fac = R_Diag(i) * max(0.1, min(1.0,(Alpha_Inflation * (hxf_var(i) - R_Diag(i)) / R_Diag(i) + 1.0)))  !RTPS (multiplicative)
-            R_Diag(i) = Inflation_Fac
-        END IF
+
+        ! dominik 09/08/2016
+        !R_Diag(i) = 0.25*hxf_var(i)
+
+        !IF (R_Diag(i) > hxf_var(i)) THEN
+        !    Inflation_Fac = R_Diag(i) * max(0.1, min(1.0,(Alpha_Inflation * (hxf_var(i) - R_Diag(i)) / R_Diag(i) + 1.0)))  !RTPS (multiplicative)
+        !   R_Diag(i) = Inflation_Fac
+        !END IF
 
     END DO
     !$OMP END DO NOWAIT
     !$OMP END PARALLEL
+    call cpu_time(finish_core)
+    print*, '("LETKF Time = ",f6.3," seconds.")',finish_core-start_core
 
-    IF (Def_Print >= 3) THEN
+    IF (Def_Print >= 2) THEN
         PRINT*,"hxfm"
         PRINT*,minval(hxfm),maxval(hxfm)
     END IF
+
 
     !
     ! d = y - hxfm
     !
     d = y - hxfm
-    IF (Def_Print >= 3) THEN
+    IF (Def_Print >= 2) THEN
         PRINT*,"d"
         PRINT*,minval(d),maxval(d)
     END IF
+
+    call cpu_time(start_core)
     !$OMP PARALLEL SHARED(hdxf,hxfm) PRIVATE(i)
     !$OMP DO SCHEDULE(STATIC)
-    !
-    ! hdxf
-    !
     DO i=1,nbv
         hdxf(:,i) = hxf(:,i) - hxfm(:)
     END DO
     !$OMP END DO NOWAIT
     !$OMP END PARALLEL
+    call cpu_time(finish_core)
+    print*, '("LETKF Time = ",f6.3," seconds.")',finish_core-start_core
 
-    IF (Def_Print >= 3) THEN
+    IF (Def_Print >= 2) THEN
         PRINT*,"hdxf"
         PRINT*,minval(hdxf),maxval(hdxf)
     END IF
 
+     
+    call cpu_time(start_core)
     !$OMP PARALLEL SHARED(innovation) PRIVATE(i)
     !$OMP DO SCHEDULE(STATIC)
-    !
-    ! innovation
-    !
     DO i=1,nbv
         innovation(:,i) = y - hxf(:,i)
     END DO
     !$OMP END DO NOWAIT
     !$OMP END PARALLEL
+    call cpu_time(finish_core)
+    print*, '("LETKF Time = ",f6.3," seconds.")',finish_core-start_core
 
-    IF (Def_Print >= 3) THEN
+    IF (Def_Print >= 2) THEN
         PRINT*,"innovation"
         PRINT*,minval(innovation),maxval(innovation)
     END IF
@@ -265,18 +315,29 @@ SUBROUTINE CALL_LETKF_2D(nx,ny,nbv,num_local_obs,msw_infl,eps,R,Correlation_Par,
     NINT_Correlation = NINT(Correlation_Par(4,1)/REAL(abs(GridSize_Sys),8))
     NINT_Correlation = max(NINT_Correlation,1)
 
+   ! dominik, 28/06/2017, NINT_Correlation is maximu distance in pixels?
+   NINT_Correlation = 5
+    
     ! Comment this line, because it does not work under parallelpython
-    !print*,"NINT_Correlation",NINT_Correlation,Correlation_Par(4,1),REAL(abs(GridSize_Sys),8)
+    print*,"NINT_Correlation",NINT_Correlation,Correlation_Par(4,1),REAL(abs(GridSize_Sys),8)
 	
     !$OMP PARALLEL SHARED(xa,parm_infl,dxf,h4d,hxf,hxfm,h,hdxf,increments,localization_map,ny_loc,dxf_dev,dxa_dev,dxa) PRIVATE(ix,xa_median,parm,ii,jj,num_local_obs_temp,dist,coeffs,dist_pack,ny_pack,coeffs_pack,rdiag_pack,rloc_pack,d_pack,hdxf_pack,coeffs_whole,coeffs_whole_eps,coeffs_whole_copy,coeffs_whole_max_value,coeffs_whole_init,coeffs_whole_index,i,localobs,j,it,localobs_index,trans,xa_xm,dxa_min,dxa_max,dxa_mean,seed,U,xa_median_ens, Analysis_NNscore, Analysis_Trans, Par_STD_Index)
-    !$OMP DO SCHEDULE(STATIC)
-
+   
+    !$OMP DO SCHEDULE(DYNAMIC,450)
     DO ix=1,nx
-        IF (Def_Print >= 3) THEN
+
+    !DO ix=117338,117338
+        IF (Def_Print >= 2) THEN
             PRINT*, 'The', ix, 'th Grid is being processing!'
         END IF
-        !thread_id = omp_get_thread_num()
+        thread_id = omp_get_thread_num()
         !print*,nthreads,ix, thread_id
+
+        IF (ix == 1) THEN
+         print*,omp_get_num_threads()
+        ENDIF        
+
+
         ny_loc(ix) = 0
         
         parm = REAL(parm_infl(ix),8)
@@ -287,85 +348,152 @@ SUBROUTINE CALL_LETKF_2D(nx,ny,nbv,num_local_obs,msw_infl,eps,R,Correlation_Par,
         dist = sqrt(abs(ii - pos_obs(:, 1)) ** 2 + abs(jj - pos_obs(:, 2)) ** 2)
         !print*,"dist",dist
         dist_pack = pack(dist,dist<NINT_Correlation*abs(GridSize_Sys))
-        !print*,"dist_pack",dist_pack
         ny_pack = size(dist_pack)
-        !print*,"ny_pack",ny_pack
-		
+
+
+
         IF (ny_pack > 0) THEN
-            IF (Def_Print >= 3) THEN
+            IF (Def_Print >= 2) THEN
                 PRINT*,"Correlation_Par",Correlation_Par(4,1), vario_type, Correlation_Par(5,1),"GridSize_Sys",GridSize_Sys,"ny_pack",ny_pack,"dist_pack",minval(dist_pack),maxval(dist_pack)
             END IF
-			
+
             ALLOCATE(coeffs_whole(ny_pack))
             ALLOCATE(coeffs_whole_copy(ny_pack))
             ALLOCATE(localobs(ny_pack))
             ALLOCATE(coeffs(ny_pack))
-			
-            CALL Calc_Loccoeffs_Fortran(Correlation_Par(4,1), vario_type, dist_pack, Correlation_Par(5,1), ny_pack, coeffs_whole)
+
+            ! dominik 26/06/2017 changed vario_type to Gaspari Cohn, should
+            ! ususally be selected somewhere within python code
+            CALL Calc_Loccoeffs_Fortran(Correlation_Par(4,1), 'Gaspari_Cohn', dist_pack, Correlation_Par(5,1), ny_pack, coeffs_whole)
             !PRINT*,"coeffs_whole",coeffs_whole
-			
-            IF (Def_Print >= 3) THEN
+
+            IF (Def_Print >= 2) THEN
                 PRINT*,"coeffs_whole",coeffs_whole
                 PRINT*,eps, maxval(coeffs_whole, MASK = coeffs_whole >= eps)
+
+                print*, "dist", dist_pack
             END IF
-			
+
             coeffs_whole_max_value = maxval(coeffs_whole, MASK = (coeffs_whole >= eps))
-	        
+        
             ! Normalization (I think it is wrong for the non-observed grid cells)
             coeffs_whole = coeffs_whole / coeffs_whole_max_value
             !print*,minval(coeffs_whole, MASK = coeffs_whole > 0)
-			
+
             localobs(:) = 0
             coeffs_whole_copy(:) = coeffs_whole(:)
-	        
+        
             coeffs_whole_eps = pack(coeffs_whole,coeffs_whole >= eps)
-	        
-            IF (size(pack(dist,dist < abs(GridSize_Sys))) > 0) THEN
-                num_local_obs_temp = 1
-            ELSE IF (size(coeffs_whole_eps) > num_local_obs) THEN
+             
+    
+            !IF (size(pack(dist,dist < abs(GridSize_Sys))) > 0) THEN
+            !IF (size(pack(dist,dist < 22000)) > 0) THEN
+            !    num_local_obs_temp = 1
+
+            ! ELSE IF > IF
+            IF (size(coeffs_whole_eps) > num_local_obs) THEN
                 num_local_obs_temp = num_local_obs
             ELSE
                 num_local_obs_temp = size(coeffs_whole_eps)
             END IF
-	        
+    
+    
             IF (num_local_obs_temp > 0) THEN
                 DO WHILE (count(localobs /= 0) < num_local_obs_temp)
+
+
+                    !if (ix == 201) then
+                    !    print*, 'loop count', count(localobs /= 0)
+                    !endif
+
                     coeffs_whole_index = maxloc(coeffs_whole_copy(:), DIM=1, MASK = coeffs_whole_copy >= eps)
                     localobs(coeffs_whole_index) = 1
                     coeffs_whole_copy(coeffs_whole_index) = 0.0
+
+                    !if (ix == 201) then
+                    !    print*, 'loop coeff', coeffs_whole_index
+                    !endif
+
+                    !print*, 'stop 6'
+
                 END DO
             END IF
-			
-            !print*,localobs
+
+
             ny_loc(ix) = num_local_obs_temp
-            IF (Def_Print >= 3) THEN
+
+            !IF (size(pack(dist,dist < 22000)) == 0) THEN
+            ! ny_loc(ix) = 0
+            !END IF
+
+            !ny_loc(ix) = num_local_obs_temp
+
+            IF(ny_loc(ix) > 0) THEN
+
+            !print*, "pixel ", ix
+
+            IF (Def_Print >= 2) THEN
                 print*, 'There are', ny_loc(ix), 'Observations Used!'
                 print*, 'minval(coeffs_whole)',minval(coeffs_whole),'maxval(coeffs_whole)',maxval(coeffs_whole),'min(dist_pack)',minval(dist_pack),'max(dist_pack)',maxval(dist_pack),"Correlation_Par(:,1)",Correlation_Par(:,1)
             END IF
-			
+            END IF
+
+
+            !IF (size(pack(dist,dist < 22000)) == 0) THEN
+             ! dont update grid cell if no direct observation is available,
+             ! dominik: 27/06/2017
+             !ny_loc(ix) = 0
+
+             !print*, 'no central observation available'
+
+            !END IF
+
+
             IF (ny_loc(ix) > 0) THEN
-				
+
+                !ALLOCATE(rdiag_packlocal(num_local_obs_temp))
                 ALLOCATE(coeffs_pack(num_local_obs_temp))
                 ALLOCATE(hdxf_pack(num_local_obs_temp,nbv))
                 ALLOCATE(rdiag_pack(num_local_obs_temp))
                 ALLOCATE(rloc_pack(num_local_obs_temp))
                 ALLOCATE(d_pack(num_local_obs_temp))
-				
+                !ALLOCATE(rdiag_packlocal(num_local_obs_temp))
+                
+                !rdiag_packlocal(:) = 0
+                
+                !print*, 'allocated rdiag local'
+                !print*, rdiag_packlocal
+
                 d_pack = pack(pack(d,dist<NINT_Correlation*abs(GridSize_Sys)),localobs == 1)
                 coeffs_pack = pack(coeffs_whole,localobs == 1)
                 rdiag_pack = pack(pack(R_Diag,dist<NINT_Correlation*abs(GridSize_Sys)),localobs == 1)
-		    	
+
+                !print*, rdiag_pack
+
                 IF (Def_Localization == 1) THEN
+
+                  ! st observation variance of neighboring observations to same as
+                  ! central observation, for SMAP assimilation, 27/06/2017
+                    !rdiag_local = (pack(R_Diag,dist < 10000))
+
+                    !print*, "rdiag local", rdiag_local
+
+                    !rdiag_pack(:) = rdiag_local(1)
+
+                    !print*, "rdiag pack", rdiag_pack
+ 
                     rdiag_pack = rdiag_pack / coeffs_pack
+
+                    !print*, rdiag_pack
                 END IF
-		    	
+
                 rloc_pack(:) = 1.0
-		        
+       
                 !print*,"ix",ix,"dist_pack",pack(pack(dist,dist<NINT_Correlation*abs(GridSize_Sys)),localobs == 1),"d_pack",d_pack,"coeffs_pack",coeffs_pack,"rdiag_pack",rdiag_pack
                 !IF(IX>=1000) THEN
                 !	CALL ABORT
                 !END IF
-		    	
+
                 DO i=1,nbv
                     hdxf_pack(:,i) = pack(pack(hdxf(:,i),dist<NINT_Correlation*abs(GridSize_Sys)),localobs == 1)
                 END DO
@@ -373,16 +501,23 @@ SUBROUTINE CALL_LETKF_2D(nx,ny,nbv,num_local_obs,msw_infl,eps,R,Correlation_Par,
                 IF (Def_Print >= 3) THEN
                     print*,"letkf",hdxf_pack(:,:),rdiag_pack(:),rloc_pack(:),d_pack(:),parm
                 END IF
-		        
+        
                 IF(parm == 0.0d0) parm = abs(msw_infl)
-		        
+               
+                !print*, 'before letkf core' 
+                !call cpu_time(start_core)
                 CALL letkf_core(Def_Print,num_local_obs_temp,ny_loc(ix),nbv,hdxf_pack,rdiag_pack,rloc_pack,d_pack,parm,trans)
-				
-                IF (Def_Print >= 3) THEN
+                !call cpu_time(finish_core)
+                !print*, '("LETKF Core Time = ",f6.3," seconds.")',finish_core-start_core
+
+                !print*, 'executed letkf_core'
+
+                IF (Def_Print >= 2) THEN
                     print*,"******************Finish letkf_core**************************************************"
                 END IF
-		        
+        
                 IF(msw_infl > 0.0d0) parm = msw_infl
+                !print*, 'msw_infl'
                 DO j=1,nbv
                     xa(ix,j) = xm(ix)
                     DO i=1,nbv
@@ -413,10 +548,13 @@ SUBROUTINE CALL_LETKF_2D(nx,ny,nbv,num_local_obs,msw_infl,eps,R,Correlation_Par,
                 CALL com_mean(nbv,xa(ix,:),xa_xm)
                 dxa(ix,:) = xa(ix,:) - xa_xm
 
-                IF (Def_Print >= 3) THEN
+
+                !print*, 'here 1'
+
+                IF (Def_Print >= 2) THEN
                     print*,"=====================================Analsys is",xm(ix)
-                    print*,"minval(dxf_copy(ix,:))",minval(dxf_copy(ix,:)),"maxval(dxf_copy(ix,:))",maxval(dxf_copy(ix,:))
-                    print*,"minval(dxa(ix,:))",minval(dxa(ix,:)),"maxval(dxa(ix,:))",maxval(dxa(ix,:))
+                    !print*,"minval(dxf_copy(ix,:))",minval(dxf_copy(ix,:)),"maxval(dxf_copy(ix,:))",maxval(dxf_copy(ix,:))
+                    !print*,"minval(dxa(ix,:))",minval(dxa(ix,:)),"maxval(dxa(ix,:))",maxval(dxa(ix,:))
                 END IF
 			    
                                 !dxa_min = minval(dxa(ix,:))
@@ -435,12 +573,14 @@ SUBROUTINE CALL_LETKF_2D(nx,ny,nbv,num_local_obs,msw_infl,eps,R,Correlation_Par,
                 CALL com_stdev(nbv,dxf_copy(ix,:),dxf_dev(ix))
                 CALL com_stdev(nbv,dxa(ix,:),dxa_dev(ix))
 				
-                IF (Def_Print >= 3) THEN
+                IF (Def_Print >= 2) THEN
                     print*,"Parameter_Optimization_Flag",Parameter_Optimization_Flag,Alpha_Inflation,ix,State_DIM_Single_Layer,ny_loc(ix),dxa_dev(ix),Par_Sens_Dim
                     IF (ix>State_DIM_Single_Layer) THEN
                         print*,"inflation",xa_xm,dxa_dev(ix)
                     ENDIF
                 ENDIF
+
+                !print*, 'hello mate'
 
                 !print*,ix,nx,Bias_Forecast_Model_Option,Bias_Observation_Model_Option,Bias_Model_Dim_LETKF,Bias_Obs_Dim_LETKF
                 ! Parameter Inflation
@@ -457,7 +597,7 @@ SUBROUTINE CALL_LETKF_2D(nx,ny,nbv,num_local_obs,msw_infl,eps,R,Correlation_Par,
 
                     !Inflation
                     IF (dxa_dev(ix) < Par_Uniform_STD(Par_STD_Index)) THEN
-                        IF (Def_Print >= 3) THEN
+                        IF (Def_Print >= 2) THEN
                             print*,"inflation",ix/State_DIM_Single_Layer - State_DIM_Single_Column + 1,xa_xm,dxa(ix,:),Par_Uniform_STD(Par_STD_Index),dxa_dev(ix)
                         ENDIF
                         IF (dxa_dev(ix) .GT. 0.0) THEN
@@ -480,7 +620,7 @@ SUBROUTINE CALL_LETKF_2D(nx,ny,nbv,num_local_obs,msw_infl,eps,R,Correlation_Par,
 
                 ! State Inflation
                 ELSE IF ((Parameter_Optimization_Flag == 0) .AND. (Bias_Forecast_Model_Option == 0) .AND. (Bias_Observation_Model_Option == 0) .AND. (Alpha_Inflation .NE. 0.0) .AND. (dxa_dev(ix) < dxf_dev(ix))) THEN
-                    IF (Def_Print >= 3) THEN
+                    IF (Def_Print >= 2) THEN
                         print*,"inflation",dxf_dev(ix),dxa_dev(ix),Alpha_Inflation * (dxf_dev(ix) - dxa_dev(ix)) / dxa_dev(ix) + 1.0
                     END IF
 
@@ -500,14 +640,20 @@ SUBROUTINE CALL_LETKF_2D(nx,ny,nbv,num_local_obs,msw_infl,eps,R,Correlation_Par,
 						!CALL com_mean(nbv,xa(ix,:),dxa_mean)
 						!print*,"After,dxa_mean",dxa_mean
                     END IF
-
+                 !print*, 'huhu'
                 END IF
 
-                DEALLOCATE (coeffs_pack)
-                DEALLOCATE (hdxf_pack)
-                DEALLOCATE (rdiag_pack)
-                DEALLOCATE (rloc_pack)
-                DEALLOCATE (d_pack)
+                !print*, 'about to deallocate'
+
+                DEALLOCATE(coeffs_pack)
+                DEALLOCATE(hdxf_pack)
+                DEALLOCATE(rdiag_pack)
+                DEALLOCATE(rloc_pack)
+                DEALLOCATE(d_pack)
+                !DEALLOCATE(rdiag_packlocal)
+
+
+                !print*, 'deallocated rdiag local'
 
             ELSE
                 DO j=1,nbv
@@ -517,11 +663,11 @@ SUBROUTINE CALL_LETKF_2D(nx,ny,nbv,num_local_obs,msw_infl,eps,R,Correlation_Par,
 
             END IF
 
-            DEALLOCATE (coeffs_whole)
-            DEALLOCATE (coeffs_whole_copy)
-            DEALLOCATE (localobs)
-            DEALLOCATE (coeffs)
-            DEALLOCATE (coeffs_whole_eps)
+            DEALLOCATE(coeffs_whole)
+            DEALLOCATE(coeffs_whole_copy)
+            DEALLOCATE(localobs)
+            DEALLOCATE(coeffs)
+            DEALLOCATE(coeffs_whole_eps)
 
         ELSE
             DO j=1,nbv
@@ -535,6 +681,10 @@ SUBROUTINE CALL_LETKF_2D(nx,ny,nbv,num_local_obs,msw_infl,eps,R,Correlation_Par,
     END DO    ! End of nx
     !$OMP END DO NOWAIT
     !$OMP END PARALLEL
+    
+    ! 23/09/2016 dominik, time letkf
+    call cpu_time(finish_xxx)
+    print*, '("LETKF Time = ",f6.3," seconds.")',finish_xxx-start_xxx
 	
     RETURN
 
@@ -623,9 +773,9 @@ SUBROUTINE Exponential_Fortran(length,h_in,r,correlation)
     REAL(8),INTENT(OUT) :: correlation(length)
     REAL(8) :: h(length)
     INTEGER::i
-	
+
     h = h_in
-	
+
     !$OMP PARALLEL SHARED(correlation) PRIVATE(i)
     !$OMP DO SCHEDULE(STATIC)
     DO i=1,length
@@ -686,9 +836,9 @@ SUBROUTINE Gaussian_Fortran(length,h_in,r,correlation)
     REAL(8) :: h(length)
     REAL(8) :: hphi
     INTEGER :: i
-	
+
     h = h_in
-	
+
     !$OMP PARALLEL SHARED(correlation) PRIVATE(i,hphi)
     !$OMP DO SCHEDULE(STATIC)
     DO i=1,length
@@ -718,21 +868,25 @@ SUBROUTINE Gaspari_Cohn_Fortran(length,h_in,r,correlation)
     REAL(8) :: cfaci
     INTEGER :: i
 
+    REAL(8) :: rr
+
     h = h_in
 
-    cfaci = REAL(r) / 2.0
+    ! dominik 27/06/2017 set r directly here for SMAP
+    rr = 100000
+    cfaci = REAL(rr) / 2.0
 
     !$OMP PARALLEL SHARED(correlation) PRIVATE(i)
     !$OMP DO SCHEDULE(STATIC)
     DO i=1,length
         IF(h(i).LE.0.0) then
             correlation(i)=1.0
-        ELSEIF (h(i) <= r / 2) THEN
+        ELSEIF (h(i) <= rr / 2) THEN
             correlation(i) = -0.25 * (h(i) / cfaci)**5 &
                 + 0.5 * (h(i) / cfaci)**4 &
                 + 5.0 / 8.0 * (h(i) / cfaci)**3 &
                 - 5.0 / 3.0 * (h(i) / cfaci)**2 + 1.0
-        ELSEIF (h(i) > r / 2 .AND. h(i) < r) THEN
+        ELSEIF (h(i) > rr / 2 .AND. h(i) < rr) THEN
             correlation(i) = 1.0 / 12.0 * (h(i) / cfaci)**5 &
                 - 0.5 * (h(i) / cfaci)**4 &
                 + 5.0 / 8.0 * (h(i) / cfaci)**3 &
@@ -746,6 +900,8 @@ SUBROUTINE Gaspari_Cohn_Fortran(length,h_in,r,correlation)
     END DO
     !$OMP END DO NOWAIT
     !$OMP END PARALLEL
+
+    !print*, 'gaspari'
 
     RETURN
 
@@ -765,9 +921,9 @@ SUBROUTINE Matern_Fortran(length,h_in,r,kappa,correlation)
     INTEGER :: i, nb, ize, ncalc
 
     REAL(8) :: bk(10)
-	
+
     h = h_in
-	
+
     alpha = kappa
     IF (alpha < 0.0) THEN
         alpha = alpha * (-1.0)
@@ -775,10 +931,10 @@ SUBROUTINE Matern_Fortran(length,h_in,r,kappa,correlation)
     nb = 1 + floor(alpha) !/* nb-1 <= |alpha| < nb */
     alpha = alpha - (nb-1)
     ize = 1
-	
+
     !print*,"***********************h",maxval(h),minval(h)
     !print*,alpha,length,h,r,kappa
-	
+
     !$OMP PARALLEL SHARED(correlation) PRIVATE(i,hphi,cte,bk,ncalc)
     !$OMP DO SCHEDULE(STATIC)
     DO i=1,length
@@ -1488,4 +1644,5 @@ subroutine rkbesl ( x, alpha, nb, ize, bk, ncalc )
 end if
 
 return
+
 end

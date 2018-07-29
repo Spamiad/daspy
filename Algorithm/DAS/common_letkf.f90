@@ -28,6 +28,9 @@
 !     trans(nbv,nbv) : transformation matrix
 !=======================================================================
 SUBROUTINE letkf_core(Def_Print,nobs,nobsl,nbv,hdxb,rdiag,rloc,dep,parm_infl,trans)
+  
+  use omp_lib
+  
   IMPLICIT NONE
   INTEGER,INTENT(IN) :: Def_Print,nobs
   INTEGER,INTENT(IN) :: nobsl
@@ -52,7 +55,9 @@ SUBROUTINE letkf_core(Def_Print,nobs,nobsl,nbv,hdxb,rdiag,rloc,dep,parm_infl,tra
   REAL(8),PARAMETER :: relax_alpha = 0.0d0  ! relaxation parameter     !GYL
   REAL(8),PARAMETER :: min_infl = 0.0d0     ! minimum inlfation factor !GYL
 
+  
   INTEGER :: i,j,k
+
 
   IF(nobsl == 0) THEN
     trans = 0.0d0
@@ -61,7 +66,7 @@ SUBROUTINE letkf_core(Def_Print,nobs,nobsl,nbv,hdxb,rdiag,rloc,dep,parm_infl,tra
     END DO
     RETURN
   ELSE
-
+  
 !-----------------------------------------------------------------------
 !  hdxb Rinv
 !-----------------------------------------------------------------------
@@ -70,10 +75,12 @@ SUBROUTINE letkf_core(Def_Print,nobs,nobsl,nbv,hdxb,rdiag,rloc,dep,parm_infl,tra
       hdxb_rinv(i,j) = hdxb(i,j) / rdiag(i) * rloc(i)
     END DO
   END DO
+
+  
 !-----------------------------------------------------------------------
 !  hdxb^T Rinv hdxb
 !-----------------------------------------------------------------------
-IF (Def_Print >= 3) THEN
+IF (Def_Print >= 2) THEN
 	print*,minval(hdxb_rinv),maxval(hdxb_rinv)
 	print*,"-----------------------------------hdxb^T Rinv hdxb"
 END IF
@@ -90,7 +97,7 @@ END IF
 !-----------------------------------------------------------------------
 !  hdxb^T Rinv hdxb + (m-1) I / rho (covariance inflation)
 !-----------------------------------------------------------------------
-IF (Def_Print >= 3) THEN
+IF (Def_Print >= 2) THEN
 	print*,minval(work1),maxval(work1)
 	print*,"-----------------------------------hdxb^T Rinv hdxb + (m-1) I / rho (covariance inflation)"
 END IF
@@ -104,7 +111,7 @@ END IF
 !-----------------------------------------------------------------------
 !  eigenvalues and eigenvectors of [ hdxb^T Rinv hdxb + (m-1) I ]
 !-----------------------------------------------------------------------
-IF (Def_Print >= 3) THEN
+IF (Def_Print >= 2) THEN
 	print*,minval(work1),maxval(work1)
 	print*,"-----------------------------------eigenvalues and eigenvectors of [ hdxb^T Rinv hdxb + (m-1) I ]"
 END IF
@@ -112,42 +119,52 @@ END IF
 !-----------------------------------------------------------------------
 !  Pa = [ hdxb^T Rinv hdxb + (m-1) I ]inv
 !-----------------------------------------------------------------------
-IF (Def_Print >= 3) THEN
+IF (Def_Print >= 2) THEN
 	print*,minval(eivec),maxval(eivec)
 	print*,"-----------------------------------Pa = [ hdxb^T Rinv hdxb + (m-1) I ]inv"
 END IF
   DO j=1,nbv
     DO i=1,nbv
+      !print*, j,i
       work1(i,j) = eivec(i,j) / eival(j)
+      !print*,work1(i,j)
     END DO
-  END DO
+  END DO 
+  !open(unit=180,file="/homec/jicg41/jicg4152/daspy/Algorithm/DAS/dgemm.txt") 
+  !write(180,*) "_nbv_",nbv,"_work1_",work1,"_eivec_",eivec,"_pa_",pa
+  !close(180)
   CALL dgemm('n','t',nbv,nbv,nbv,1.0d0,work1,nbv,eivec,&
     & nbv,0.0d0,pa,nbv)
-!  DO j=1,nbv
-!    DO i=1,nbv
-!      pa(i,j) = work1(i,1) * eivec(j,1)
-!      DO k=2,nbv
-!        pa(i,j) = pa(i,j) + work1(i,k) * eivec(j,k)
-!      END DO
-!    END DO
-!  END DO
+  !DO j=1,nbv
+  !  print*, "j is ",j
+  !  DO i=1,nbv
+  !    print*, "i is ", i
+  !    pa(i,j) = work1(i,1) * eivec(j,1)
+  !    print*, "pa 1 is ", pa
+  !    DO k=2,nbv
+  !      pa(i,j) = pa(i,j) + work1(i,k) * eivec(j,k)
+  !      print*, "k is ", k
+  !      print*, "pa 2 is ", pa
+  !    END DO
+  !   END DO
+  !END DO
 !-----------------------------------------------------------------------
 !  Pa hdxb_rinv^T
 !-----------------------------------------------------------------------
-IF (Def_Print >= 3) THEN
+IF (Def_Print >= 2) THEN
 	print*,minval(pa),maxval(pa)
 	print*,"----------------------------------Pa hdxb_rinv^T"
 END IF
   CALL dgemm('n','t',nbv,nobsl,nbv,1.0d0,pa,nbv,hdxb_rinv,&
     & nobsl,0.0d0,work2,nbv)
-!  DO j=1,nobsl
-!    DO i=1,nbv
-!      work2(i,j) = pa(i,1) * hdxb_rinv(j,1)
-!      DO k=2,nbv
-!        work2(i,j) = work2(i,j) + pa(i,k) * hdxb_rinv(j,k)
-!      END DO
-!    END DO
-!  END DO
+  !DO j=1,nobsl
+  !  DO i=1,nbv
+  !    work2(i,j) = pa(i,1) * hdxb_rinv(j,1)
+  !    DO k=2,nbv
+  !      work2(i,j) = work2(i,j) + pa(i,k) * hdxb_rinv(j,k)
+  !    END DO
+  !  END DO
+  !END DO
 !-----------------------------------------------------------------------
 !  Pa hdxb_rinv^T dep
 !-----------------------------------------------------------------------
@@ -160,7 +177,7 @@ END IF
 !-----------------------------------------------------------------------
 !  T = sqrt[(m-1)Pa]
 !-----------------------------------------------------------------------
-IF (Def_Print >= 3) THEN
+IF (Def_Print >= 2) THEN
 	print*,minval(work3),maxval(work3)
 	print*,"----------------------------------T = sqrt[(m-1)Pa]"
 END IF
@@ -172,14 +189,14 @@ END IF
   END DO
   CALL dgemm('n','t',nbv,nbv,nbv,1.0d0,work1,nbv,eivec,&
     & nbv,0.0d0,trans,nbv)
-!  DO j=1,nbv
-!    DO i=1,nbv
-!      trans(i,j) = work1(i,1) * eivec(j,1)
-!      DO k=2,nbv
-!        trans(i,j) = trans(i,j) + work1(i,k) * eivec(j,k)
-!      END DO
-!    END DO
-!  END DO
+  !DO j=1,nbv
+  !  DO i=1,nbv
+  !    trans(i,j) = work1(i,1) * eivec(j,1)
+  !    DO k=2,nbv
+  !      trans(i,j) = trans(i,j) + work1(i,k) * eivec(j,k)
+  !    END DO
+  !  END DO
+  !END DO
 !-----------------------------------------------------------------------
 !  T + Pa hdxb_rinv^T dep
 !-----------------------------------------------------------------------
@@ -197,7 +214,7 @@ END IF
 !-----------------------------------------------------------------------
 !  Inflation estimation
 !-----------------------------------------------------------------------
-IF (Def_Print >= 3) THEN
+IF (Def_Print >= 2) THEN
 	print*,minval(trans),maxval(trans)
 	print*,"----------------------------------Inflation estimation"
 END IF
@@ -347,11 +364,13 @@ SUBROUTINE mtx_eigen(imode,n,a,eival,eivec,nrank_eff)
   REAL(8) :: wrk2(n)
   INTEGER :: ierr,i,j
 
+
   a8 = a
   eivec8 = 0.0d0
   CALL rs(n,n,a8,eival8,imode,eivec8,wrk1,wrk2,ierr)
   IF( ierr/=0 ) THEN
     WRITE(6,'(A)') '!!! ERROR (mtx_eigen): rs error code is ',ierr
+    print*, "error 1"
     STOP 2
   END IF
 
@@ -366,6 +385,7 @@ SUBROUTINE mtx_eigen(imode,n,a,eival,eivec,nrank_eff)
     END DO
   ELSE
     WRITE(6,'(A)') '!!! ERROR (mtx_eigen): All Eigenvalues are below 0'
+    print*, "error 2"
     STOP 2
   END IF
 
@@ -386,6 +406,5 @@ SUBROUTINE mtx_eigen(imode,n,a,eival,eivec,nrank_eff)
     eival(i) = eival8(n+1-i)
     eivec(:,i) = eivec8(:,n+1-i)
   END DO
-
   RETURN
 END SUBROUTINE mtx_eigen
