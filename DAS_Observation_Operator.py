@@ -1,13 +1,13 @@
-# -*- coding: utf-8 -*- 
 '''
+# -*- coding: utf-8 -*- 
 Copyright of DasPy:
-Author - Xujun Han (Forschungszentrum Jülich, Germany)
+Author - Xujun Han (Forschungszentrum Juelich, Germany)
 x.han@fz-juelich.de, xujunhan@gmail.com
 
 DasPy was funded by:
-1. Forschungszentrum Jülich, Agrosphere (IBG 3), Jülich, Germany
+1. Forschungszentrum Juelich, Agrosphere (IBG 3), Juelich, Germany
 2. Cold and Arid Regions Environmental and Engineering Research Institute, Chinese Academy of Sciences, Lanzhou, PR China
-3. Centre for High-Performance Scientific Computing in Terrestrial Systems: HPSC TerrSys, Geoverbund ABC/J, Jülich, Germany
+3. Centre for High-Performance Scientific Computing in Terrestrial Systems: HPSC TerrSys, Geoverbund ABC/J, Juelich, Germany
 
 Please include the following references related to DasPy:
 1. Han, X., Li, X., He, G., Kumbhar, P., Montzka, C., Kollet, S., Miyoshi, T., Rosolem, R., Zhang, Y., Vereecken, H., and Franssen, H. J. H.: 
@@ -26,6 +26,8 @@ sys.path.append('Utilities')
 from DAS_Assim import *
 from DAS_Assim_Common import *
 from DAS_Utilities import *
+
+#os.system("taskset -pc 0-47 %d" % os.getpid())
 
 def DAS_Observation_Operator(Ensemble_Number,Def_PP,Def_Print, active_nodes_server, job_server_node_array, DAS_Depends_Path, Def_Region, Soil_Layer_Num, Grid_Resolution_CEA, DasPy_Path, \
             Start_Year, Start_Month, Start_Day, Start_Hour, LATIXY_Mat, LONGXY_Mat, Mask_Index, Station_XY, Station_XY_Index, N0, nlyr,
@@ -104,9 +106,9 @@ def DAS_Observation_Operator(Ensemble_Number,Def_PP,Def_Print, active_nodes_serv
                     NC_File_Out_Assimilation_2_Initial.close()
     
         
-        if Variable_ID.count('TB') > 0:
-            if SensorVariable[Variable_ID.index('TB')] == "Soil_Moisture":
-                SensorType_Name = SensorType[Variable_ID.index('TB')]
+        if Variable_ID.count('TBH') > 0:
+            if SensorVariable[Variable_ID.index('TBH')] == "Soil_Moisture":
+                SensorType_Name = SensorType[Variable_ID.index('TBH')]
                 print "################### Using CMEM as Observation Operator"
                 if Def_First_Run_RTM:
                     CMEM_Work_Path_Home = DAS_Output_Path+"ObsModel/CMEM/"+Region_Name

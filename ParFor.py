@@ -1,13 +1,13 @@
-# -*- coding: utf-8 -*- 
 '''
+# -*- coding: utf-8 -*- 
 Copyright of DasPy:
-Author - Xujun Han (Forschungszentrum Jülich, Germany)
+Author - Xujun Han (Forschungszentrum Juelich, Germany)
 x.han@fz-juelich.de, xujunhan@gmail.com
 
 DasPy was funded by:
-1. Forschungszentrum Jülich, Agrosphere (IBG 3), Jülich, Germany
+1. Forschungszentrum Juelich, Agrosphere (IBG 3), Juelich, Germany
 2. Cold and Arid Regions Environmental and Engineering Research Institute, Chinese Academy of Sciences, Lanzhou, PR China
-3. Centre for High-Performance Scientific Computing in Terrestrial Systems: HPSC TerrSys, Geoverbund ABC/J, Jülich, Germany
+3. Centre for High-Performance Scientific Computing in Terrestrial Systems: HPSC TerrSys, Geoverbund ABC/J, Juelich, Germany
 
 Please include the following references related to DasPy:
 1. Han, X., Li, X., He, G., Kumbhar, P., Montzka, C., Kollet, S., Miyoshi, T., Rosolem, R., Zhang, Y., Vereecken, H., and Franssen, H. J. H.: 
@@ -22,6 +22,7 @@ Joint Assimilation of Surface Temperature and L-Band Microwave Brightness Temper
 
 import os,socket,numpy,scipy.weave
 
+#os.system("taskset -pc 0-47 %d" % os.getpid())
 
 def ParFor_Common(CLM_NA,ColumnNum,Row_Numbers,Col_Numbers,cols1d_ixy,cols1d_jxy,Array_Origin,varin,Mask_Region,DAS_Depends_Path,omp_get_num_procs_ParFor,NAvalue):
     
@@ -62,11 +63,11 @@ def ParFor_Common(CLM_NA,ColumnNum,Row_Numbers,Col_Numbers,cols1d_ixy,cols1d_jxy
     if os.name == 'nt' or os.name == 'posix':
         libs=['gomp']
     if os.name == 'posix' and socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if os.name == 'posix' and socket.gethostname()[0:4] == 'node':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     dirs1=['.',DAS_Depends_Path + 'include',DAS_Depends_Path + 'include/python2.7']
     dirs2=['.',DAS_Depends_Path + 'lib',DAS_Depends_Path + 'lib64']
     vars_list = ['CLM_NA','ColumnNum','Row_Numbers','Col_Numbers','cols1d_ixy','cols1d_jxy','Array_Origin','varin','Mask_Region','varout','omp_get_num_procs_ParFor','NAvalue']
@@ -438,11 +439,11 @@ def ParFor_Fusion(Def_ReBEL,Obs_Grid_Length,CLM_NA,Ensemble_Number,Row_Numbers,C
     if os.name == 'nt' or os.name == 'posix':
         libs=['gomp','armadillo']
     if os.name == 'posix' and socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack','armadillo']
+        libs=['gomp','openblas','armadillo']
     if socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack','armadillo']
+        libs=['gomp','openblas','armadillo']
     if os.name == 'posix' and socket.gethostname()[0:4] == 'node':
-        libs=['gomp','blas','lapack','armadillo']
+        libs=['gomp','openblas','armadillo']
     dirs1=['.',DAS_Depends_Path + 'include',DAS_Depends_Path + 'include/python2.7']
     dirs2=['.',DAS_Depends_Path + 'lib',DAS_Depends_Path + 'lib64']
     vars_list = ['Def_ReBEL','Obs_Grid_Length','CLM_NA','Ensemble_Number','Row_Numbers','Col_Numbers','Obs_Index_Dim','Mask_Index','Def_Localization','num_local_obs','Mask','pos_obs','loc_len','loc_function','eps','kappa','Obs_Grid','Observation_Matrix',\
@@ -487,11 +488,11 @@ def ParFor_PFT_Prepare_Model(Row_Numbers,Col_Numbers,maxpft,Parameter_PFT_Space_
     if os.name == 'nt' or os.name == 'posix':
         libs=['gomp']
     if os.name == 'posix' and socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if os.name == 'posix' and socket.gethostname()[0:4] == 'node':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     dirs1=['.',DAS_Depends_Path + 'include',DAS_Depends_Path + 'include/python2.7']
     dirs2=['.',DAS_Depends_Path + 'lib',DAS_Depends_Path + 'lib64']
     vars_list = ['Row_Numbers','Col_Numbers','maxpft','Parameter_PFT_Space_Ensemble','PFT_Dominant_Index','Analysis_Grid_Matrix','omp_get_num_procs_ParFor']
@@ -535,11 +536,11 @@ def ParFor_PFT(Row_Numbers,Col_Numbers,maxpft,Parameter_PFT_Space_Ensemble,PFT_D
     if os.name == 'nt' or os.name == 'posix':
         libs=['gomp']
     if os.name == 'posix' and socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if os.name == 'posix' and socket.gethostname()[0:4] == 'node':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     dirs1=['.',DAS_Depends_Path + 'include',DAS_Depends_Path + 'include/python2.7']
     dirs2=['.',DAS_Depends_Path + 'lib',DAS_Depends_Path + 'lib64']
     vars_list = ['Row_Numbers','Col_Numbers','maxpft','Parameter_PFT_Space_Ensemble','PFT_Dominant_Index','Analysis_Grid_Matrix','omp_get_num_procs_ParFor']
@@ -585,11 +586,11 @@ def ParFor_PFT_Block_Assim(Row_Numbers,Col_Numbers,maxpft,Parameter_Space_SubBlo
     if os.name == 'nt' or os.name == 'posix':
         libs=['gomp']
     if os.name == 'posix' and socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if os.name == 'posix' and socket.gethostname()[0:4] == 'node':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     dirs1=['.',DAS_Depends_Path + 'include',DAS_Depends_Path + 'include/python2.7']
     dirs2=['.',DAS_Depends_Path + 'lib',DAS_Depends_Path + 'lib64']
     vars_list = ['Row_Numbers','Col_Numbers','maxpft','Parameter_Space_SubBlock','PFT_Dominant_Index','Parameter_PFT_Space_Ensemble_SubBlock_Sens','omp_get_num_procs_ParFor']
@@ -655,11 +656,11 @@ def ParFor_Sand_Clay_Organic(Sand_Top_Region,Sand_Sub_Region,Clay_Top_Region,Cla
     if os.name == 'nt' or os.name == 'posix':
         libs=['gomp']
     if os.name == 'posix' and socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if os.name == 'posix' and socket.gethostname()[0:4] == 'node':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     dirs1=['.',DAS_Depends_Path + 'include',DAS_Depends_Path + 'include/python2.7']
     dirs2=['.',DAS_Depends_Path + 'lib',DAS_Depends_Path + 'lib64']
     vars_list = ['Sand_Top_Region','Sand_Sub_Region','Clay_Top_Region','Clay_Sub_Region','Organic_Top_Region','Organic_Sub_Region', \
@@ -733,11 +734,11 @@ def ParFor_H_Operator(H_Out,ny,Mask_False,Obs_Index,Soil_Moisture_DA_Flag,\
     if os.name == 'nt' or os.name == 'posix':
         libs=['gomp']
     if os.name == 'posix' and socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if os.name == 'posix' and socket.gethostname()[0:4] == 'node':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     dirs1=['.',DAS_Depends_Path + 'include',DAS_Depends_Path + 'include/python2.7']
     dirs2=['.',DAS_Depends_Path + 'lib',DAS_Depends_Path + 'lib64']
     vars_list = ['ny','Mask_False','Obs_Index','Soil_Moisture_DA_Flag','SensorVariable','SensorType',\
@@ -802,11 +803,11 @@ def ParFor_Texture_Check(Dim_Soil_Par, Ensemble_Number, Row_Numbers, Col_Numbers
     if os.name == 'nt' or os.name == 'posix':
         libs=['gomp']
     if os.name == 'posix' and socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if os.name == 'posix' and socket.gethostname()[0:4] == 'node':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     dirs1=['.',DAS_Depends_Path + 'include',DAS_Depends_Path + 'include/python2.7']
     dirs2=['.',DAS_Depends_Path + 'lib',DAS_Depends_Path + 'lib64']
     vars_list = ['Ensemble_Number','Soil_Texture_Layer_Opt_Num','Soil_Sand_Clay_Sum','Row_Numbers','Col_Numbers','Parameter_Soil_Space_Ensemble','Parameter_Soil_Space_Ensemble_Out','omp_get_num_procs_ParFor']
@@ -853,11 +854,11 @@ def ParFor_Ratio(CLM_NA,ColumnNum,Row_Numbers,Col_Numbers,cols1d_ixy,cols1d_jxy,
     if os.name == 'nt' or os.name == 'posix':
         libs=['gomp']
     if os.name == 'posix' and socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if os.name == 'posix' and socket.gethostname()[0:4] == 'node':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     dirs1=['.',DAS_Depends_Path + 'include',DAS_Depends_Path + 'include/python2.7']
     dirs2=['.',DAS_Depends_Path + 'lib',DAS_Depends_Path + 'lib64']
     vars_list = ['CLM_NA','ColumnNum','Row_Numbers','Col_Numbers','cols1d_ixy','cols1d_jxy','Array_Origin','ratio_upper','ratio_lower','Mask_Region','varout','omp_get_num_procs_ParFor','NAvalue']
@@ -955,11 +956,11 @@ def ParFor_Soil_Moisture(CLM_NA,ColumnNum,Row_Numbers,Col_Numbers,cols1d_ixy,col
     if os.name == 'nt' or os.name == 'posix':
         libs=['gomp']
     if os.name == 'posix' and socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if os.name == 'posix' and socket.gethostname()[0:4] == 'node':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     dirs1=['.',DAS_Depends_Path + 'include',DAS_Depends_Path + 'include/python2.7']
     dirs2=['.',DAS_Depends_Path + 'lib',DAS_Depends_Path + 'lib64']
     vars_list = ['CLM_NA','ColumnNum','Row_Numbers','Col_Numbers','cols1d_ixy','cols1d_jxy','Soil_Layer_Index_DA','Snow_Layer_Num','Soil_Layer_Num','CLM_Soil_Moisture','CLM_Soil_Layer_Thickness',\
@@ -1018,11 +1019,11 @@ def ParFor_Check_Outliers(Land_Mask_Data, Matrix_In,Row_Numbers,Col_Numbers,Matr
     if os.name == 'nt' or os.name == 'posix':
         libs=['gomp']
     if os.name == 'posix' and socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if os.name == 'posix' and socket.gethostname()[0:4] == 'node':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     dirs1=['.',DAS_Depends_Path + 'include',DAS_Depends_Path + 'include/python2.7']
     dirs2=['.',DAS_Depends_Path + 'lib',DAS_Depends_Path + 'lib64']
     vars_list = ['Land_Mask_Data','Matrix_In','Row_Numbers','Col_Numbers','Matrix_Min','Matrix_Max','DAS_Depends_Path','omp_get_num_procs_ParFor','NAvalue']
@@ -1079,11 +1080,11 @@ def ParFor_Check_Outliers_NA(Land_Mask_Data, Matrix_In,Row_Numbers,Col_Numbers,M
     if os.name == 'nt' or os.name == 'posix':
         libs=['gomp']
     if os.name == 'posix' and socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if socket.gethostname()[0] == 'j':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     if os.name == 'posix' and socket.gethostname()[0:4] == 'node':
-        libs=['gomp','blas','lapack']
+        libs=['gomp','openblas']
     dirs1=['.',DAS_Depends_Path + 'include',DAS_Depends_Path + 'include/python2.7']
     dirs2=['.',DAS_Depends_Path + 'lib',DAS_Depends_Path + 'lib64']
     vars_list = ['Land_Mask_Data','Matrix_In','Row_Numbers','Col_Numbers','Matrix_Min','Matrix_Max','DAS_Depends_Path','omp_get_num_procs_ParFor','NAvalue']

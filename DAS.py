@@ -2,7 +2,7 @@
     CLM and WRF Coupled System
 '''
 
-Def_PP = 1 # (0: Serial, 1: ParallelPython 2: MPI4Py)
+Def_PP = 2 # (0: Serial, 1: ParallelPython 2: MPI4Py)
 mpi4py_comm = []
 mpi4py_null = []
 mpi4py_rank = 0
@@ -28,14 +28,17 @@ if Def_PP == 2:
 import os, sys, time, datetime, math, gc, subprocess, glob, string, shutil, copy, imp
 import warnings, multiprocessing, socket, getpass, pickle, ctypes, platform
 import numpy, scipy, netCDF4
+
+import time
+import datetime
+
+#os.system("taskset -pc 0-47 %d" % os.getpid())
+
 sys.path.append('Utilities/Soil')
 sys.path.append('Utilities')
 sys.path.append('Algorithm')
 sys.path.append('Algorithm/DAS')
 sys.path.append('ForcingData')
-
-sys.path.append('/usr/lib64/python2.7/site-packages/mpich/')
-sys.path.append('/disk02/usr/people/lrains/Model/daspy_depends/pp-1.6.4')
 
 Def_Figure_Output = 1
 if Def_Figure_Output:
@@ -68,10 +71,12 @@ if mpi4py_rank == 0:
     """
 
 
-#Def_Region = 3   
-# Australia
-Def_Region = 44
- 
+#Def_Region = 3    
+Def_Region = 66
+
+# 55 = SMAP Assimilation, currently surfdata files contain 84 months??
+# 66 = Dynamic LAI Assimilation, currently with climatological LAI from 84 months
+
 Model_Driver = "CLM_45" 
 PicHeight, PicWidth, RegionName, Row_Numbers, Col_Numbers, Grid_Resolution_CEA, Grid_Resolution_GEO, \
 mksrf_edgee, mksrf_edgew, mksrf_edges, mksrf_edgen, Region_Name, Run_Dir_Home, DAS_Output_Path, Hydraulic_File_Name, \
@@ -86,28 +91,29 @@ if Def_PP == 2:
 
 #print "mpi4py_rank",mpi4py_rank
 
-Observation_Time_File_Path = DasPy_Path + "Examples/Rur/Only_LST_Par_LAI"
+#Observation_Time_File_Path = DasPy_Path + "Examples/Rur/Only_LST_Par_LAI"
+Observation_Time_File_Path = "/homec/jicg41/jicg4152/daspy/DAS_Data/Observation/RemoteSensing"
 
 Def_CESM_Multi_Instance = 0 # for future
 if mpi4py_rank == 0:
     print "*********************************************** Common Configuration"
 Def_Run_DAS_Model    = 1     # Do Data Assimilation
-Def_Run_Model        = 0     # for future
+Def_Run_Model         = 0     # for future
 Def_Run_WRF         = 0     # for future
 Def_Irrigation_Opt  = 0     # for future
 
 Def_Snow_Effects    = 0     # for future
 
 Feedback_Assim      = 0     # Whether to use LST update SM or use SM to update LST
-Parameter_Optimization = 2  # Define whether to call the parameter optimization module (0: No 1: SODA 2: Augmentation)
+Parameter_Optimization = 0  # Define whether to call the parameter optimization module (0: No 1: SODA 2: Augmentation)
 Parameter_Regularization = 1.0  # for future
 Def_Par_Sensitivity = 0     # for future
 Def_Par_Correlation = 0     # for future
-Def_Par_Optimized  = 1     # Define whether to use the optimized parameters
+Def_Par_Optimized  = 0     # Define whether to use the optimized parameters
 
-Def_First_Run       = 1  # 0 for restart run, 1 for first run, -1 for recover run if 0 fails. Define whether it is the first run
+Def_First_Run = 0  # 0 for restart run, 1 for first run, -1 for recover run if 0 fails. Define whether it is the first run
                         # It controls the copy and perturbation of surface data
-Ensemble_Number         = 2    # Run CLM in Ensemble
+Ensemble_Number         = 32 # Run CLM in Ensemble
 Ensemble_Number_Predict = 100  # for future
 
 Normal_Score_Trans      = 0 # for future
@@ -117,13 +123,13 @@ PDAF_Filter_Type        = 5 # for future
 if mpi4py_rank == 0:
     print "**********************************************************CLM******************************************************************"
 
-Def_SpinUp      = 0  	# for future
-Def_Print       = 1   # (0: No printed information) (1: short information) (2: medium output statistics for Debug) (3: full output statistics for Debug)
+Def_SpinUp = 0  	# for future
+Def_Print = 1   # (0: No printed information) (1: short information) (2: medium output statistics for Debug) (3: full output statistics for Debug)
 Plot_Analysis   = 1   # whether to plot the results (1: Plot few, 2: Plot more)
-Def_Debug       = 0     # for future
+Def_Debug	= 0     # for future
 Write_DA_File_Flag   = 0  # Define whether to write the assimilation files
 Initial_Perturbation = 0    # Whether to perturb the initial state before starting CLM model to prevent filter divergence
-Def_Localization    = 1  # Whether to use the Observation Horizontal Correlation in the general data fusion algorithm
+Def_Localization = 1  # Whether to use the Observation Horizontal Correlation in the general data fusion algorithm
                         # Or in LETKF, if 0, the observation variance will not be divided by the correlation coefficients
 Observation_Box     = numpy.min([int(numpy.sqrt(Row_Numbers**2+Col_Numbers**2) / 2.0), 10])
 # The Local Observation Window Increment for the Large Area, How many boundary grid cells should be considered
@@ -131,12 +137,12 @@ Observation_Box     = numpy.min([int(numpy.sqrt(Row_Numbers**2+Col_Numbers**2) /
 #["Soil_Moisture","Surface_Temperature","Vegetation_Temperature","Canopy_Water","Albedo_BSA_Band_vis","Albedo_BSA_Band_nir","Albedo_WSA_Band_vis",
 #                         "Albedo_WSA_Band_nir","Emissivity","Snow_Depth","Snow_Cover_Fraction","Snow_Water_Equivalent","LAI","Crop_Planting_Date","Crop_Harvest_Date",
 #                         "Water_Storage","Water_Table","Irrigation_Rate","Irrigation_Scheduling"]
-Num_Local_Obs_State = numpy.asarray([9, 9])
+Num_Local_Obs_State = numpy.asarray([100, 100])
 # Number of Observation used in Parameter Local Analysis (5 is better for soil moisture)
-Num_Local_Obs_Par   = numpy.asarray([9, 9])
+Num_Local_Obs_Par   = numpy.asarray([100, 100])
 # Number of Observation used in Bias Local Analysis (5 is better for soil moisture)
-Num_Local_Obs_Bias   = numpy.asarray([9, 9])
-eps           = numpy.asarray([0.1, 0.1, 0.1])   # Threshold to Select Correlated Observations (State, Parameter and Bias)
+Num_Local_Obs_Bias   = numpy.asarray([100, 100])
+eps           = numpy.asarray([0.01, 0.01, 0.01])   # Threshold to Select Correlated Observations (State, Parameter and Bias)
 msw_infl             = numpy.asarray([1.01, 1.01, 1.01])  #  (State, Parameter and Bias)inflation mode switch  #  < 0 : adaptive inflation    #  > 0 : fixed inflation value
                             # During dry period, the soil moisture needs the inflation
 
@@ -177,7 +183,7 @@ if Def_Region == -1:
 if mpi4py_rank == 0:
     print "************************************** Datetime Configuration"
 # Model Start Time
-Start_Year      = '2000'
+Start_Year      = '2016'
 Start_Month     = '01'
 Start_Day       = '01'
 Start_Hour      = '00'
@@ -187,9 +193,9 @@ Datetime_Start = datetime.datetime(string.atoi(Start_Year), string.atoi(Start_Mo
 Datetime_Start_Init = datetime.datetime(string.atoi(Start_Year), string.atoi(Start_Month), string.atoi(Start_Day), 00, 00)
 
 # Model End Time
-End_Year        = '2000'
-End_Month       = '01'
-End_Day         = '15'
+End_Year        = '2016'
+End_Month       = '12'
+End_Day         = '31'
 End_Hour        = '23'
 End_Minute      = '00'
 Datetime_End = datetime.datetime(string.atoi(End_Year), string.atoi(End_Month), string.atoi(End_Day), string.atoi(End_Hour), string.atoi(End_Minute))
@@ -237,7 +243,7 @@ Veg_Par_Sens_Array[1] = numpy.array([False, False, False, False, False, False, F
 PFT_Par_Sens_Array[1] = numpy.array([True, True, False],dtype=numpy.bool)
 Hard_Par_Sens_Array[1] = numpy.array([False, False, False, False, False],dtype=numpy.bool)# for future
 
-NAvalue = -9999.0
+NAvalue = -9999
 CLM_NA = 1e36
 Dim_Soil_Par = numpy.size(Soil_Par_Sens_Array[0])
 Dim_Veg_Par = numpy.size(Veg_Par_Sens_Array[0])# for future
@@ -277,7 +283,10 @@ if mpi4py_rank == 0:
 
 if Def_Run_DAS_Model:
     Do_DA_Flag = 1  # If Do_DA_Flag = 0: Run the CLM Only; If Do_DA_Flag = 1: Run the CLM and Do Data Assimilation
-    DAS_Driver(mpi4py_comm, mpi4py_null, mpi4py_rank,  mpi4py_size, mpi4py_name, Model_Driver,Do_DA_Flag, Def_Par_Sensitivity, Def_Par_Correlation, Def_Par_Optimized,   Dim_Soil_Par, Dim_Veg_Par, Dim_PFT_Par, Dim_Hard_Par, Soil_Texture_Layer_Opt_Num, Observation_Box, LAI_Year_String, MODIS_LAI_Data_ID,\
+else:
+    Do_DA_Flag = 0
+
+DAS_Driver(mpi4py_comm, mpi4py_null, mpi4py_rank,  mpi4py_size, mpi4py_name, Model_Driver,Do_DA_Flag, Def_Par_Sensitivity, Def_Par_Correlation, Def_Par_Optimized,   Dim_Soil_Par, Dim_Veg_Par, Dim_PFT_Par, Dim_Hard_Par, Soil_Texture_Layer_Opt_Num, Observation_Box, LAI_Year_String, MODIS_LAI_Data_ID,\
              Num_of_Days_Monthly, Start_Year, Start_Month, Start_Day, Start_Hour, Start_Minute, End_Year, End_Month, End_Day, End_Hour, End_Minute, Datetime_Start, Datetime_Start_Init, \
              Datetime_End, Datetime_End_Init, Datetime_Initial, UTC_Zone, CLM_NA, NAvalue, Assim_Algorithm_Name, Station_XY, Station_XY_Index, dtime, \
              NSLOTS, Feedback_Assim, Parameter_Optimization, Parameter_Regularization, Def_CDF_Matching, Bias_Estimation_Option_Model, Bias_Estimation_Option_Obs, Post_Inflation_Alpha, Def_Snow_Effects, N0, nlyr,\

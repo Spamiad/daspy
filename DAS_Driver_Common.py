@@ -29,6 +29,8 @@ from DAS_Assim import *
 from DAS_Assim_Common import *
 from DAS_Utilities import *
 
+#os.system("taskset -pc 0-47 %d" % os.getpid())
+
 def DAS_Driver_Common(mpi4py_comm, mpi4py_null, mpi4py_rank, mpi4py_name, mpi4py_comm_split, mpipy_comm_decomposition, Model_Driver, PDAF_Assim_Framework, PDAF_Filter_Type, Def_PP, Def_CESM_Multi_Instance, Def_Par_Optimized, Def_Par_Sensitivity, Def_Par_Correlation, Do_DA_Flag, CLM_NA, NAvalue, finidat_initial_CLM, finidat_initial_CLM_Copy, Def_ParFor, Def_Region, 
                     Def_Initial, Irrig_Scheduling, Irrigation_Hours, Def_Print, Region_Name, Run_Dir_Home, Run_Dir_Multi_Instance, Run_Dir_Array, Model_Path, CLM_Flag, num_processors,
                     Start_Year, Start_Month, Start_Day, Start_Hour, Stop_Year, Stop_Month, Stop_Day, Stop_Hour, Datetime_Initial, Datetime_Start, Datetime_Start_Init, Datetime_Stop, Datetime_Stop_Init, Datetime_End,
@@ -194,7 +196,7 @@ def DAS_Driver_Common(mpi4py_comm, mpi4py_null, mpi4py_rank, mpi4py_name, mpi4py
                                                   omp_get_num_procs_ParFor, Low_Ratio_Par, High_Ratio_Par, Soil_Texture_Layer_Opt_Num, Def_Snow_Effects, PFT_Par_Sens_Array,\
                                                   Soil_Thickness, Soil_Layer_Num, Snow_Layer_Num, Density_of_liquid_water, Initial_Perturbation, Initial_Perturbation_SM_Flag, Initial_Perturbation_ST_Flag, \
                                                   NC_FileName_Assimilation_2_Constant, NC_FileName_Assimilation_2_Diagnostic, NC_FileName_Assimilation_2_Initial, NC_FileName_Assimilation_2_Bias, NC_FileName_Assimilation_2_Parameter, NC_FileName_Parameter_Space_Single),
-                                      depfuncs=(Run_CLM, Call_CLM_3D, Write_datm_atm_in, Write_datm_streams_txt, Write_presaero_stream_txt, Write_lnd_in, Write_rof_in, Write_Config_Files, Write_drv_in, Write_seq_maps, copyLargeFile,),
+                                      depfuncs=(Run_CLM, Call_CLM_3D, Write_datm_atm_in, Write_datm_streams_txt_rad, Write_datm_streams_txt_prec, Write_datm_streams_txt_tair, Write_presaero_stream_txt, Write_lnd_in, Write_rof_in, Write_Config_Files, Write_drv_in, Write_seq_maps, copyLargeFile,),
                                       modules=("numpy", "netCDF4", "sys", "os", "re", "unittest", "time", "datetime", "shutil", "fnmatch", "subprocess", "string", "socket", "signal", "gc", "imp", "getpass", "calendar", "glob","scipy.stats","scipy.signal",'scipy.weave'), group='Prepare_Model_Operator'))
                         
                         Ens_Index = Ens_Index + 1
@@ -261,7 +263,7 @@ def DAS_Driver_Common(mpi4py_comm, mpi4py_null, mpi4py_rank, mpi4py_name, mpi4py
                                                                                   Low_Ratio_Par, High_Ratio_Par, Soil_Texture_Layer_Opt_Num, Def_Snow_Effects, PFT_Par_Sens_Array,\
                                                                                   Soil_Thickness, Soil_Layer_Num, Snow_Layer_Num, Density_of_liquid_water, Initial_Perturbation, Initial_Perturbation_SM_Flag, Initial_Perturbation_ST_Flag, NC_FileName_Assimilation_2_Constant, NC_FileName_Assimilation_2_Diagnostic, 
                                                                                   NC_FileName_Assimilation_2_Initial,  NC_FileName_Assimilation_2_Bias, NC_FileName_Parameter_Space_Single, COUP_OAS_PFL, CESM_Init_Flag, mpi4py_comm_split, mpi4py_null),
-                                      depfuncs=(Run_CLM, Call_CLM_3D, Write_datm_atm_in, Write_datm_streams_txt, Write_presaero_stream_txt, Write_lnd_in, Write_rof_in, Write_Config_Files, Write_drv_in, Write_seq_maps),
+                                      depfuncs=(Run_CLM, Call_CLM_3D, Write_datm_atm_in, Write_datm_streams_txt_rad, Write_datm_streams_txt_prec, Write_datm_streams_txt_prec, Write_presaero_stream_txt, Write_lnd_in, Write_rof_in, Write_Config_Files, Write_drv_in, Write_seq_maps),
                                       modules=("numpy", "netCDF4", "sys", "os", "re", "unittest", "time", "datetime", "shutil", "fnmatch", "subprocess", "string", "socket", "signal", "gc", "imp", "getpass", "calendar", "glob","scipy.stats","scipy.signal",'scipy.weave'), group='DAS'))
                         
                         Ens_Index = Ens_Index + 1
@@ -406,11 +408,11 @@ def DAS_Driver_Common(mpi4py_comm, mpi4py_null, mpi4py_rank, mpi4py_name, mpi4py
                         plt.colorbar(im1, ticks=ticks, orientation='horizontal')
                         ax.set_title('Observation_Matrix')
                         plt.grid(True)
-                        plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/Observation_Matrix_"+str(Observation_Matrix_Index)+".png")
+                        plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/Observation_Matrix_"+str(Observation_Matrix_Index)+"_"+DateString_Plot+".png")
                         plt.close('all')
-                    #print "******************** Re-assign the Observation Coordinates using the Model Coordinates, Becuase of  the version bug of PROJ.4"
-                    #Observation_Longitude[Observation_Matrix_Index,:,:] = MODEL_CEA_X
-                    #Observation_Latitude[Observation_Matrix_Index,:,:] = MODEL_CEA_Y
+                    print "******************** Re-assign the Observation Coordinates using the Model Coordinates, Becuase of  the version bug of PROJ.4"
+                    Observation_Longitude[Observation_Matrix_Index,:,:] = MODEL_CEA_X
+                    Observation_Latitude[Observation_Matrix_Index,:,:] = MODEL_CEA_Y
                     Obs_X_Left = numpy.min(Observation_Longitude[Observation_Matrix_Index,:,:])
                     Obs_X_Right = numpy.max(Observation_Longitude[Observation_Matrix_Index,:,:])
                     Obs_Y_Lower = numpy.min(Observation_Latitude[Observation_Matrix_Index,:,:])
@@ -433,7 +435,7 @@ def DAS_Driver_Common(mpi4py_comm, mpi4py_null, mpi4py_rank, mpi4py_name, mpi4py
             if Initial_Perturbation:
                 Additive_Noise_SM_Cov = numpy.square(Additive_Noise_SM_Par[:,0]) * Additive_Noise_SM_Par[:,1:11]
                 numpy.random.seed(seed=string.atoi(str((Datetime_Start - Datetime_Initial).days)))
-                Additive_Noise_SM = numpy.random.multivariate_normal(numpy.zeros(Soil_Layer_Num-5),Additive_Noise_SM_Cov, size=((Ensemble_Number)))
+                Additive_Noise_SM = numpy.random.multivariate_normal(numpy.zeros(Soil_Layer_Num),Additive_Noise_SM_Cov, size=((Ensemble_Number)))
                 numpy.random.seed(seed=string.atoi(str((Datetime_Start - Datetime_Initial).days)))
                 Additive_Noise_ST = numpy.random.multivariate_normal(numpy.zeros(2),[[0.04,0.64],[0.64,0.04]], size=((Ensemble_Number)))
             
@@ -955,7 +957,7 @@ def DAS_Config(mpi4py_rank, Model_Driver, Start_Year, Start_Month, Start_Day, St
         print "Constant_File_Name_Header",Constant_File_Name_Header
         print "============================================================================================================================"
     
-    Soil_Layer_Num = 10
+    Soil_Layer_Num = 15
     Snow_Layer_Num = 5
     ParFlow_Layer_Num = 30
     
@@ -995,8 +997,12 @@ def DAS_Config(mpi4py_rank, Model_Driver, Start_Year, Start_Month, Start_Day, St
     elif socket.gethostname()[0] == 'n':
         num_processors = 16
         omp_get_num_procs_ParFor = 16
-    
-    omp_get_num_procs_ParFor = max([1,num_processors/Ensemble_Number])
+   
+ 
+    #omp_get_num_procs_ParFor = max([1,num_processors/Ensemble_Number])
+    # dominik 11/09/2016
+    omp_get_num_procs_ParFor = 48
+
     NSLOTS = int(sys.argv[1])   # How many processors assigned
     Node_Num = NSLOTS / num_processors
     
@@ -1006,8 +1012,13 @@ def DAS_Config(mpi4py_rank, Model_Driver, Start_Year, Start_Month, Start_Day, St
     #nthreads_CLM = num_processors
     nthreads_CLM = 1    # OpenMP does not work for CLM4.5
     
-    Model_Path = "/disk02/usr/people/lrains/Model/daspy_depends/bin/cesm_sp_serial.exe"
-    
+    #Model_Path = "/homeb/hbn29/hbn29f/DAS_Depends/bin/cesm_sp_serial.exe"
+    Model_Path = "/work/jicg41/jicg4152/CESM/cesm.exe"  # non-dyn LAI version?
+    #Model_Path = "/work/jicg41/jicg4152/CESM/cesm_dynlai.exe"
+    #Model_Path = "/work/jicg41/jicg4152/CESM/jureca_I_2017b/exe/cesm.exe" #LAI version
+    #Model_Path = "/work/jicg41/jicg4152/CESM/jureca_I_test_24/exe/cesm_sp_serial_8threads_15052016.exe"
+    #Model_Path = "/work/jicg41/jicg4152/CESM/jureca_I_test_24/exe/cesm_sp_mpich_03042016.exe"    
+
     if mpi4py_rank == 0:
         print "**********Model_Path",Model_Path
     #os.abort()
@@ -1022,6 +1033,10 @@ def DAS_Config(mpi4py_rank, Model_Driver, Start_Year, Start_Month, Start_Day, St
     else:
         if Def_Region == 3:
             Sub_Block_Ratio_Row = 4
+            Sub_Block_Ratio_Col = 1
+
+        if Def_Region == 44:
+            Sub_Block_Ratio_Row = 1
             Sub_Block_Ratio_Col = 1
     
     Row_Offset = numpy.zeros((Sub_Block_Ratio_Row*Sub_Block_Ratio_Col,2),dtype=numpy.integer)
@@ -1132,7 +1147,7 @@ def Start_ppserver(mpi4py_comm, mpi4py_rank, mpi4py_name, DAS_Output_Path, Ensem
         print "one ppserver will start per processor , log messages in the file "+DAS_Output_Path+"ppserver_log.txt"
     
     # Should be changed for specific application
-    PROCS_PER_NODE = 16
+    PROCS_PER_NODE = 48
     PP_Servers_Per_Node = 1
     
     if mpi4py_rank == 0:
@@ -1169,7 +1184,8 @@ def Start_ppserver(mpi4py_comm, mpi4py_rank, mpi4py_name, DAS_Output_Path, Ensem
                         CMD_String = "echo `hostname` > "+DAS_Output_Path+"nodefile.txt"
                         pipe = subprocess.Popen(CMD_String, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,stderr=subprocess.PIPE, close_fds=True)
                     else:
-                        CMD_String = "echo `cat $PBS_NODEFILE` > "+DAS_Output_Path+"nodefile.txt"
+                        # CMD_String = "echo `scontrol show hostname` > "+DAS_Output_Path+"nodefile.txt"
+                        CMD_String = "echo `hostname` > "+DAS_Output_Path+"nodefile.txt"
                         print "CMD_String",CMD_String
                         pipe = subprocess.Popen(CMD_String, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,stderr=subprocess.PIPE, close_fds=True)
                     
@@ -1388,8 +1404,8 @@ def Start_ppserver(mpi4py_comm, mpi4py_rank, mpi4py_name, DAS_Output_Path, Ensem
         print "**************************len(job_server_node_array)",len(job_server_node_array)
         print "*******************************************************************"
     return job_server_node_array, active_nodes_server, PROCS_PER_NODE, PP_Port, PP_Servers_Per_Node
-
-
+	
+	
 def Stop_ppserver(mpi4py_rank, Def_PP, DAS_Depends_Path, job_server_node_array, NSLOTS, DasPy_Path, active_nodes_server, PP_Servers_Per_Node):
     
     print "Stop ppserver to realease mpi for CLM........"

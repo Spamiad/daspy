@@ -23,6 +23,8 @@ from mpi4py import MPI
 import os, sys, time, datetime, calendar, random, math, gc, imp, subprocess, glob, signal, string, shutil, fnmatch, warnings, multiprocessing, socket, getpass, ctypes, platform, functools, copy
 import numpy, scipy, scipy.stats, scipy.signal, netCDF4, scipy.ndimage
 
+#os.system("taskset -pc 0-47 %d" % os.getpid())
+
 sys.path.append('SysModel')
 sys.path.append('SysModel/CLM')
 sys.path.append('Utilities')
@@ -197,7 +199,7 @@ def Prepare_Model_Operator(Ens_Index, Model_Driver, Def_CESM_Multi_Instance, Def
             CLM_Initial_File = netCDF4.Dataset(Run_Dir+"/"+ finidat_initial_CLM, "r+")
             column_len = len(CLM_Initial_File.dimensions['column'])
              
-            for Soil_Layer_Index in range(Soil_Layer_Num-5):
+            for Soil_Layer_Index in range(Soil_Layer_Num-9):
                 if Initial_Perturbation_SM_Flag[Soil_Layer_Index]:
                     #print numpy.shape(CLM_Initial_File.variables["H2OSOI_LIQ"][:,Snow_Layer_Num+Soil_Layer_Index]),numpy.shape(Initial_SM_Noise[Ens_Index,:,:][numpy.where(Land_Mask_Data != NAvalue)].flatten())
                     CLM_Initial_File.variables["H2OSOI_LIQ"][:,Snow_Layer_Num+Soil_Layer_Index] += numpy.repeat(Initial_SM_Noise[Ens_Index,:,:][numpy.where(Land_Mask_Data != NAvalue)].flatten(),column_len/(Row_Numbers*Col_Numbers))  * (Soil_Thickness[Soil_Layer_Index] * Density_of_liquid_water)
@@ -324,14 +326,14 @@ def Observation_Blocks(Observation_Matrix_Index, Def_PP, Def_CESM_Multi_Instance
         Observation_File = netCDF4.Dataset(Observation_File_Name, "r")
         #----------------- Get the Observation Matrix Dimension
         #print Observation_File.dimensions["lat"]
-        Observation_NLats = len(Observation_File.dimensions["lat"])
-        Observation_NLons = len(Observation_File.dimensions["lon"])
+        Observation_NLats = len(Observation_File.dimensions["latitude"])
+        Observation_NLons = len(Observation_File.dimensions["longitude"])
         Observation_Latitude = numpy.zeros((Observation_NLats, Observation_NLons),dtype=numpy.float32)
         Observation_Longitude = numpy.zeros((Observation_NLats, Observation_NLons),dtype=numpy.float32)
         Observation_View_Zenith_Angle = numpy.zeros((Observation_NLats, Observation_NLons),dtype=numpy.float32)
-        Observation_View_Time = numpy.zeros((Observation_NLats, Observation_NLons),dtype=numpy.float32)
-        Observation_Latitude = Observation_File.variables["CEA_Y"][::]
-        Observation_Longitude = Observation_File.variables["CEA_X"][::]
+        Observation_View_Time = numpy.zeros((Observation_NLats, Observation_NLons),dtype=numpy.float32)         
+        #Observation_Latitude = Observation_File.variables["CEA_Y"][::]
+        #Observation_Longitude = Observation_File.variables["CEA_X"][::]
         Observation_Latitude = numpy.flipud(Observation_Latitude)
         Observation_Matrix = Observation_File.variables[Variable_ID][::]
         if Variable_Assimilation_Flag[Variable_List.index(SensorVariable)] and SensorVariable == "Surface_Temperature" or\
@@ -394,9 +396,11 @@ def Observation_Blocks(Observation_Matrix_Index, Def_PP, Def_CESM_Multi_Instance
             Observation_Matrix = numpy.flipud(Observation_Matrix)
             
         elif SensorType == "SMOS" and SensorQuantity == "K":
-            Observation_Matrix = numpy.flipud(Observation_Matrix)
+            #Observation_Matrix = numpy.flipud(Observation_Matrix)
+             Observation_Matrix = Observation_Matrix
         elif SensorType == "SMOS" and SensorQuantity == "m3/m3":
-            Observation_Matrix = numpy.flipud(Observation_Matrix)
+            #Observation_Matrix = numpy.flipud(Observation_Matrix)
+             Observation_Matrix = Observation_Matrix
         elif SensorType == "ASCAT" and SensorQuantity == "m3/m3":
             Observation_Matrix = numpy.flipud(Observation_Matrix)
         elif SensorType == "ASAR" and SensorQuantity == "DB":
@@ -487,7 +491,38 @@ def Observation_Blocks(Observation_Matrix_Index, Def_PP, Def_CESM_Multi_Instance
     if SensorVariable == "Soil_Moisture":
         if SensorQuantity == "K":
             Observation_Variance[Observation_Matrix_None_NA_Index] = numpy.square(Observation_Matrix[Observation_Matrix_None_NA_Index] * 0.01)
-            Observation_Variance[Observation_Matrix_None_NA_Index] = 4.0
+            Observation_Variance[Observation_Matrix_None_NA_Index] = 3.0 # changed
+            
+            # dominik: read per-pixel model variance for anomaly assimilation
+            # expanded 06/5/2017 for SMAP anomaly assimilation
+
+            hour = Datetime_Stop.strftime('%H')
+            hour = str(int(hour)*3600)
+
+            year = Datetime_Stop.strftime('%Y')
+            month = Datetime_Stop.strftime('%m')
+            day = Datetime_Stop.strftime('%d')
+
+
+            #Var_CLM_Name = '/homec/jicg41/jicg4152/daspy/R_scaled_' + hour + '.nc'
+            #Var_CLM_Name = '/homec/jicg41/jicg4152/daspy/DAS_Data/Observation/RemoteSensing/ObsErrors/SMOS.smapclim_Gabrielle_short.Error.' + hour + '.nc'
+
+            # LAI study
+            Var_CLM_Name = '/homec/jicg41/jicg4152/daspy/DAS_Data/Observation/RemoteSensing/ObsErrors/SMOS.Error.dynLAI.' + hour + '.nc'
+
+
+            # dominik: 15/09/2017 read observation specific observation variance
+            #Var_CLM_Name = '/homec/jicg41/jicg4152/daspy/DAS_Data/Observation/RemoteSensing/ObsErrors/Australia_SMAPSMOS_TB_anomalies_CDF_Oct_4.2/Australia.SMAPSMOS.R.' + \
+            #year + '-' + month + '-' + day + '.' + hour + '.nc'
+
+            Var_CLM_id = netCDF4.Dataset(Var_CLM_Name, 'r')
+            #Observation_Variance = Var_CLM_id.variables['layer'][::]
+            Observation_Variance = Var_CLM_id.variables['R'][::]
+            #Observation_Variance = Observation_Variance * Observation_Variance # netcdf contains standard deviation,
+
+            # dominik, 5/10/2017, reduce representativeness error for SMAP
+            #Observation_Variance = 0.75 * Observation_Variance 
+ 
         elif SensorQuantity == "DB":
             Observation_Variance[Observation_Matrix_None_NA_Index] = numpy.square(Observation_Matrix[Observation_Matrix_None_NA_Index] * 0.05)
         elif SensorQuantity == "m3/m3":
@@ -522,16 +557,21 @@ def Observation_Blocks(Observation_Matrix_Index, Def_PP, Def_CESM_Multi_Instance
     if numpy.sum(Variable_Assimilation_Flag) > 0:
         Observation_File.close()
     
-    Grid_Resolution_CEA_Local = (Observation_X_Right-Observation_X_Left)/Col_Numbers
-    
+    #Grid_Resolution_CEA_Local = (Observation_X_Right-Observation_X_Left)/Col_Numbers
+    Grid_Resolution_CEA_Local = 25000    
+
     Observation_Corelation_Par = numpy.zeros((5, 2))
     Observation_Corelation_Par[0, 0] = 2 # exponential Model
     #Observation_Corelation_Par[0, 0] = 12 # Gaspari_Cohn Model
     Observation_Corelation_Par[1, 0] = 0.0
     Observation_Corelation_Par[2, 0] = 1.0
     Observation_Corelation_Par[3, 0] = 10.0*Grid_Resolution_CEA_Local
-    Observation_Corelation_Par[4, 0] = 1.0    
-                
+    Observation_Corelation_Par[4, 0] = 1.0   
+
+    #dominik 29/06/2016
+    #Observation_Corelation_Par[3, 0] = 2.0*Grid_Resolution_CEA_Local 
+    #Observation_Corelation_Par[0, 0] = 4
+            
     print "Observation Variance is:", numpy.mean(Observation_Variance[Observation_Matrix_None_NA_Index])
         
     if Write_DA_File_Flag:
@@ -841,10 +881,10 @@ def Read_History_File(Ens_Index, Model_Driver, Def_First_Run, Def_Region, Def_PP
                 
                 CLM_Soil_Layer_Thickness_Cumsum = numpy.asarray(NC_File_Out_Assimilation_2_Constant.variables['CLM_Soil_Layer_Thickness_Cumsum'][:,:,:]) * 100
                 
-                soil_moisture = numpy.zeros((Mask_Size,Soil_Layer_Num-5),dtype=numpy.float32)
-                layerz = numpy.zeros((Mask_Size,Soil_Layer_Num-5),dtype=numpy.float32)
+                soil_moisture = numpy.zeros((Mask_Size,Soil_Layer_Num-9),dtype=numpy.float32)
+                layerz = numpy.zeros((Mask_Size,Soil_Layer_Num-9),dtype=numpy.float32)
                 
-                for Soil_Layer_Index in range(Soil_Layer_Num-5):
+                for Soil_Layer_Index in range(Soil_Layer_Num-9):
                     soil_moisture[:,Soil_Layer_Index] = CLM_Soil_Moisture[Soil_Layer_Index,:,:].flatten()[Mask_Index]
                     layerz[:,Soil_Layer_Index] = CLM_Soil_Layer_Thickness_Cumsum[Soil_Layer_Index,:,:].flatten()[Mask_Index]
                 
@@ -1297,7 +1337,8 @@ def Write_Initial_File(Ens_Index, Model_Driver, Def_PP, DasPy_Path, Run_Dir_Arra
                                     numpy.asarray(CLM_Initial_File.variables["H2OSOI_LIQ"][::]),Mask_Index_Sub,DAS_Depends_Path,omp_get_num_procs_ParFor,NAvalue)
              
             # Only update the first 7 layers to avoid unreasonable subsurface flow
-            CLM_Initial_File.variables["H2OSOI_LIQ"][:,Snow_Layer_Num:(Snow_Layer_Num+Soil_Layer_Num - 5)] = H2OSOI_LIQ_Temp[:,0:(Soil_Layer_Num - 5)]
+            # changed by dominik: 08/07/2016
+            CLM_Initial_File.variables["H2OSOI_LIQ"][:,Snow_Layer_Num:(Snow_Layer_Num+Soil_Layer_Num -9)] = H2OSOI_LIQ_Temp[:,0:(Soil_Layer_Num -9)]
             
             del H2OSOI_LIQ_Temp
             if Feedback_Assim:# and (string.atoi(Stop_Month) >= 5) and (string.atoi(Stop_Month) <= 9):
@@ -1326,6 +1367,7 @@ def Write_Initial_File(Ens_Index, Model_Driver, Def_PP, DasPy_Path, Run_Dir_Arra
                 del T_LAKE_Temp
                     
         else:
+            print "not using parfor for soil moisture update"
             H2OSOI_LIQ_Temp = numpy.asarray(CLM_Initial_File.variables["H2OSOI_LIQ"][:,:])
             for Column_Index in range(column_len):
                 Row_Index = Row_Numbers - cols1d_jxy[Column_Index]
@@ -1339,7 +1381,7 @@ def Write_Initial_File(Ens_Index, Model_Driver, Def_PP, DasPy_Path, Run_Dir_Arra
                             
                             # Transform the CLM Soil Moisture Unit (m3/m3) to (kg/m2) after data assimilation
                             #for Soil_Layer_Index in range(Soil_Layer_Index_DA,Soil_Layer_Index_DA+1,1):
-                            for Soil_Layer_Index in range(Soil_Layer_Num - 5):  # Only update the first 7 layers to avoid unreasonable subsurface flow
+                            for Soil_Layer_Index in range(Soil_Layer_Num -9):  # Only update the first 7 layers to avoid unreasonable subsurface flow
                                 if CLM_Soil_Moisture[Soil_Layer_Index,Row_Index,Col_Index] != NAvalue and CLM_Soil_Layer_Thickness[Soil_Layer_Index,Row_Index,Col_Index] < CLM_NA:
                                     #H2OSOI_LIQ_Original = CLM_Initial_File.variables["H2OSOI_LIQ"][Column_Index,Snow_Layer_Num+Soil_Layer_Index]
                                     #H2OSOI_ICE_Original = CLM_Initial_File.variables["H2OSOI_ICE"][Column_Index,Snow_Layer_Num+Soil_Layer_Index]
@@ -1424,7 +1466,7 @@ def Write_Initial_File(Ens_Index, Model_Driver, Def_PP, DasPy_Path, Run_Dir_Arra
                                         numpy.asarray(CLM_Initial_File.variables["H2OSOI_LIQ"][::]),Mask_Index_Sub,DAS_Depends_Path,omp_get_num_procs_ParFor,NAvalue)
                 
                 # Only update the first 7 layers to avoid unreasonable subsurface flow
-                CLM_Initial_File.variables["H2OSOI_LIQ"][:,Snow_Layer_Num:(Snow_Layer_Num+Soil_Layer_Num - 5)] = H2OSOI_LIQ_Temp[:,0:(Soil_Layer_Num - 5)]
+                CLM_Initial_File.variables["H2OSOI_LIQ"][:,Snow_Layer_Num:(Snow_Layer_Num+Soil_Layer_Num -9)] = H2OSOI_LIQ_Temp[:,0:(Soil_Layer_Num -9)]
                 del H2OSOI_LIQ_Temp
                 if Def_Print >= 2:
                     print "Soil Liquid Water: ", numpy.min(CLM_Initial_File.variables["H2OSOI_LIQ"][:,Snow_Layer_Num+Soil_Layer_Index_DA]), numpy.max(CLM_Initial_File.variables["H2OSOI_LIQ"][:,Snow_Layer_Num+Soil_Layer_Index_DA])
@@ -1494,7 +1536,7 @@ def Write_Initial_File(Ens_Index, Model_Driver, Def_PP, DasPy_Path, Run_Dir_Arra
                                 
                                 # Transform the CLM Soil Moisture Unit (m3/m3) to (kg/m2) after data assimilation
                                 #for Soil_Layer_Index in range(Soil_Layer_Index_DA,Soil_Layer_Index_DA+1,1):
-                                for Soil_Layer_Index in range(Soil_Layer_Num - 5):  # Only update the first 7 layers to avoid unreasonable subsurface flow
+                                for Soil_Layer_Index in range(Soil_Layer_Num -9):  # Only update the first 7 layers to avoid unreasonable subsurface flow
                                     if CLM_Soil_Moisture[Soil_Layer_Index,Row_Index,Col_Index] != NAvalue and CLM_Soil_Layer_Thickness[Soil_Layer_Index,Row_Index,Col_Index] < CLM_NA:
                                         #H2OSOI_LIQ_Original = CLM_Initial_File.variables["H2OSOI_LIQ"][Column_Index,Snow_Layer_Num+Soil_Layer_Index]
                                         #H2OSOI_ICE_Original = CLM_Initial_File.variables["H2OSOI_ICE"][Column_Index,Snow_Layer_Num+Soil_Layer_Index]
@@ -1994,22 +2036,37 @@ def Parameter_Space_Function(Model_Driver, Def_Print, Def_PP, active_nodes_serve
         print "###################### Check Texture 1"  
         if Def_ParFor:
             #print Dim_Soil_Par, Ensemble_Number, Row_Numbers, Col_Numbers, Soil_Texture_Layer_Opt_Num, Soil_Sand_Clay_Sum, Parameter_Soil_Space_Ensemble, DAS_Depends_Path, omp_get_num_procs_ParFor
-            NC_File_Out_Assimilation_2_Parameter.variables['Parameter_Soil_Space_Ensemble'][:,:,:,:] = ParFor.ParFor_Texture_Check(Dim_Soil_Par, Ensemble_Number, Row_Numbers, Col_Numbers, Soil_Texture_Layer_Opt_Num, Soil_Sand_Clay_Sum, NC_File_Out_Assimilation_2_Parameter.variables['Parameter_Soil_Space_Ensemble'][:,:,:,:], DAS_Depends_Path, omp_get_num_procs_ParFor)
-        else:
+
+#dominik: 08062017, deactivate next line to disable soil texture perturbations
+            #NC_File_Out_Assimilation_2_Parameter.variables['Parameter_Soil_Space_Ensemble'][:,:,:,:] = ParFor.ParFor_Texture_Check(Dim_Soil_Par, Ensemble_Number, Row_Numbers, Col_Numbers, Soil_Texture_Layer_Opt_Num, Soil_Sand_Clay_Sum, NC_File_Out_Assimilation_2_Parameter.variables['Parameter_Soil_Space_Ensemble'][:,:,:,:], DAS_Depends_Path, omp_get_num_procs_ParFor)
+        
             Parameter_Soil_Space_Ensemble = numpy.asarray(NC_File_Out_Assimilation_2_Parameter.variables['Parameter_Soil_Space_Ensemble'][:,:,:,:])
             
             for Ens_Index in range(Ensemble_Number):
+                print "checking ensemble" 
                 # Soil Texture Boundary Check
                 for Row_Index in range(Row_Numbers):
+                    #print Row_Index
                     for Col_Index in range(Col_Numbers):
+                        #print Col_Index
                         # if Sand + Clay is greater than their sum
                         for Soil_Layer_Index_Sub in range(Soil_Texture_Layer_Opt_Num):
+                            #print Soil_Layer_Index_Sub
                             Texture_Sum = (Parameter_Soil_Space_Ensemble[Ens_Index,Soil_Layer_Index_Sub,Row_Index,Col_Index] + Parameter_Soil_Space_Ensemble[Ens_Index,Soil_Layer_Index_Sub+Soil_Texture_Layer_Opt_Num,Row_Index,Col_Index])
+                            #print Texture_Sum                            
+
                             if Texture_Sum > 98.0:
                                 Ratio = Parameter_Soil_Space_Ensemble[Ens_Index,Soil_Layer_Index_Sub,Row_Index,Col_Index] / (Parameter_Soil_Space_Ensemble[Ens_Index,Soil_Layer_Index_Sub,Row_Index,Col_Index]+Parameter_Soil_Space_Ensemble[Ens_Index,Soil_Layer_Index_Sub+Soil_Texture_Layer_Opt_Num,Row_Index,Col_Index])
+                                
+                                #print Ratio
                                 Diff = Texture_Sum - 98.0
+                                #print Diff
                                 Diff_Part1 = Ratio*Diff
                                 Diff_Part2 = Diff - Diff_Part1
+                                
+                                #print Diff_Part1
+                                #print Diff_Part2
+
                                 Parameter_Soil_Space_Ensemble[Ens_Index,Soil_Layer_Index_Sub,Row_Index,Col_Index] -= Diff_Part1
                                 Parameter_Soil_Space_Ensemble[Ens_Index,Soil_Layer_Index_Sub+Soil_Texture_Layer_Opt_Num,Row_Index,Col_Index] -= Diff_Part2
     #                        if Texture_Sum < Soil_Sand_Clay_Sum[Soil_Layer_Index_Sub,Row_Index,Col_Index]:
@@ -2216,11 +2273,11 @@ def Run_CMEM(Ens_Index, NC_FileName_Assimilation_2_Constant, NC_FileName_Assimil
     View_Angle = 0.0
     if SensorType_Name == 'SMOS':
         Frequency = 1.4
-        View_Angle = 50.0
+        View_Angle = 42.5
     
     print "CMEM_Work_Path",CMEM_Work_Path,SensorType_Name,Frequency,View_Angle
     TBH, TBV, EFFECTIVE_TEMP = Call_CMEM.Call_CMEM(Def_Print, CMEM_Work_Path, Row_Numbers, Col_Numbers, Latitude, Longitude, Tair_Mat, Tair_Time, Clay_Mat, Sand_Mat, ECOCVL_Mat, ECOCVH_Mat, ECOTVL_Mat, ECOTVH_Mat, ECOWAT_Mat, ECOLAIL_Mat,
-                                       RSN_Mat, SD_Mat, STL_Mat, SWVL_Mat, TSKIN_Mat, Z_Mat, Frequency, View_Angle)
+                                       RSN_Mat, SD_Mat, STL_Mat, SWVL_Mat, TSKIN_Mat, Z_Mat, Frequency, View_Angle, Datetime_Stop)
     
     TBH_Flipud = numpy.flipud(TBH)
     TBH_Flipud[Mask_Index[0,::]] = -9999.0
@@ -2425,10 +2482,10 @@ def Run_COSMOS(Ens_Index, DAS_Depends_Path, Def_Region, Def_PP, Def_Print, N0, n
     
     CLM_Soil_Layer_Thickness_Cumsum = CLM_Soil_Layer_Thickness_Cumsum * 100 # from meters to cm
     
-    soil_moisture = numpy.zeros((Mask_Size,Soil_Layer_Num-5),dtype=numpy.float32)
-    layerz = numpy.zeros((Mask_Size,Soil_Layer_Num-5),dtype=numpy.float32)
+    soil_moisture = numpy.zeros((Mask_Size,Soil_Layer_Num-9),dtype=numpy.float32)
+    layerz = numpy.zeros((Mask_Size,Soil_Layer_Num-9),dtype=numpy.float32)
     
-    for Soil_Layer_Index in range(Soil_Layer_Num-5):
+    for Soil_Layer_Index in range(Soil_Layer_Num-9):
         soil_moisture[:,Soil_Layer_Index] = CLM_Soil_Moisture[Soil_Layer_Index,:,:].flatten()[Mask_Index]
         layerz[:,Soil_Layer_Index] = CLM_Soil_Layer_Thickness_Cumsum[Soil_Layer_Index,:,:].flatten()[Mask_Index]
     
@@ -2588,6 +2645,11 @@ def Run_CLM(Model_Driver, Def_PP, Do_DA_Flag, Def_CESM_Multi_Instance, Def_Par_S
         hostname = repr(socket.gethostname())
         orb_iyear_ad = Start_Year
         start_type = "'startup'"
+
+        # 21/03/2016 dominik
+        #start_type = "'continue'" 
+
+
         # startup, continue, branch, hybrid
         # startup - arbitrary initialization determined by components (default)
         # hybrid - initialization occurs from the restart/initial files of a previous reference case, the start date can be changed with respect to reference case
@@ -2672,6 +2734,8 @@ def Run_CLM(Model_Driver, Def_PP, Do_DA_Flag, Def_CESM_Multi_Instance, Def_Par_S
         hist_fincl1 = "'TSA','PSurf','ONSET_FDD','RAIN','SNOW','QDRIP','H2OSFC','FH2OSFC','Rnet','FSA','PSurf','QSOIL','QVEGE','QVEGT','QIRRIG','HTOP','HBOT','SOILC','NPP','NEE','GPP','TV','TG','TG_U','TG_R',\
         'TSOI','TLAKE','FSH_V','FSH_G','Qh','Qle','TLAI','TSAI','H2OSNO','H2OCAN','H2OSOI', 'SOILICE','SNOWDP','FSNO','INT_SNOW','QINFL','FGR','FGEV','ZWT','WA','TWS','TSA','TBOT','QOVER','QRGWL','QSNWCPLIQ','QDRAI','QH2OSFC'"
         
+        #hist_fincl1 = "'TSOI','H2OSOI','TV','TG','TBOT'"        
+
         # List of fields to exclude from the respective history tape. The field name must appear in the Master Field List of the default history tape (the primary tape)
         hist_fexcl1 = "''"
         

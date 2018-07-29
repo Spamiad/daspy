@@ -1,13 +1,13 @@
-# -*- coding: utf-8 -*- 
 '''
+# -*- coding: utf-8 -*- 
 Copyright of DasPy:
-Author - Xujun Han (Forschungszentrum Jülich, Germany)
+Author - Xujun Han (Forschungszentrum Juelich, Germany)
 x.han@fz-juelich.de, xujunhan@gmail.com
 
 DasPy was funded by:
-1. Forschungszentrum Jülich, Agrosphere (IBG 3), Jülich, Germany
+1. Forschungszentrum Juelich, Agrosphere (IBG 3), Juelich, Germany
 2. Cold and Arid Regions Environmental and Engineering Research Institute, Chinese Academy of Sciences, Lanzhou, PR China
-3. Centre for High-Performance Scientific Computing in Terrestrial Systems: HPSC TerrSys, Geoverbund ABC/J, Jülich, Germany
+3. Centre for High-Performance Scientific Computing in Terrestrial Systems: HPSC TerrSys, Geoverbund ABC/J, Juelich, Germany
 
 Please include the following references related to DasPy:
 1. Han, X., Li, X., He, G., Kumbhar, P., Montzka, C., Kollet, S., Miyoshi, T., Rosolem, R., Zhang, Y., Vereecken, H., and Franssen, H. J. H.: 
@@ -21,6 +21,10 @@ Joint Assimilation of Surface Temperature and L-Band Microwave Brightness Temper
 '''
 import numpy, netCDF4, gc, string
 
+#os.system("taskset -pc 0-47 %d" % os.getpid())
+
+# dominik 16/06/2016
+from shutil import copyfile
 
 def Plot_Parameters(Def_Print, fm, legend, plt, cm, colors, r, Def_Region, DasPy_Path, Region_Name, Row_Numbers, Col_Numbers, DAS_Data_Path, Row_Numbers_String, Col_Numbers_String, Dim_Soil_Par, Dim_Veg_Par, Start_Month, DateString_Plot, Assim_Flag, Mask_Index, PFT_Dominant_Index,
                     Parameter_Range_Veg, Parameter_Range_PFT, Parameter_Range_Hard, Ensemble_Number, Soil_Par_Sens_Array, Veg_Par_Sens_Array, PFT_Par_Sens_Array, Hard_Par_Sens_Array,  Station_XY, Station_XY_Index, NC_FileName_Assimilation_2_Parameter, NC_FileName_Optimized_Parameter, NC_FileName_Parameter_Space_Single):
@@ -190,7 +194,7 @@ def Plot_Parameters(Def_Print, fm, legend, plt, cm, colors, r, Def_Region, DasPy
             ax.set_title('Sand_50cm_Optimized')  
         plt.grid(True)
         
-        plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/Sand_Optimized.png")
+        plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/Sand_Optimized_" + DateString_Plot + ".png")
         plt.show()
         
         Variable_Min = 5.0
@@ -267,7 +271,7 @@ def Plot_Parameters(Def_Print, fm, legend, plt, cm, colors, r, Def_Region, DasPy
             ax.set_title('Clay_50cm_Optimized')    
         plt.grid(True)
         
-        plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/Clay_Optimized.png")
+        plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/Clay_Optimized_" + DateString_Plot + ".png")
         plt.show()
         
         Variable_Min = 5.0
@@ -343,7 +347,7 @@ def Plot_Parameters(Def_Print, fm, legend, plt, cm, colors, r, Def_Region, DasPy
             ax.set_title('Organic_50cm_Optimized')
         plt.grid(True)
         
-        plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/Organic_Optimized.png")
+        plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/Organic_Optimized_" + DateString_Plot + ".png")
         plt.show()
         
         
@@ -390,7 +394,7 @@ def Plot_Parameters(Def_Print, fm, legend, plt, cm, colors, r, Def_Region, DasPy
             else:
                 ax.set_title('LAI_Optimized')
             plt.grid(True)
-            plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/LAI_Optimized.png")
+            plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/LAI_Optimized_" + DateString_Plot +".png")
             plt.show()        
         
         if PFT_Par_Sens_Array[0][1] or PFT_Par_Sens_Array[1][1]:
@@ -434,14 +438,14 @@ def Plot_Parameters(Def_Print, fm, legend, plt, cm, colors, r, Def_Region, DasPy
             else:
                 ax.set_title('SAI_Optimized')
             plt.grid(True)
-            plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/SAI_Optimized.png")
+            plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/SAI_Optimized" + "_" + DateString_Plot  + ".png")
             plt.show()
             
         
     print "*************************************** Plot the Parameter Ensembles"
     
-    #for Station_Index in range(numpy.size(Station_XY)/2):
-    for Station_Index in range(1):
+    for Station_Index in range(numpy.size(Station_XY)/2):
+    #for Station_Index in range(1):
         
         if numpy.size(numpy.where(numpy.asarray(Soil_Par_Sens_Array) == True)) > 0:
             x=numpy.arange(Par_Steps_Soil)
@@ -502,7 +506,7 @@ def Plot_Parameters(Def_Print, fm, legend, plt, cm, colors, r, Def_Region, DasPy
                 tick.label1.set_fontsize(fontsize=18)
             for tick in ax1.yaxis.get_major_ticks():
                 tick.label1.set_fontsize(fontsize=18)
-            plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/Sand_Ensembles_Station_"+str(Station_Index+1)+".png")
+            plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/Sand_Ensembles_Station_"+str(Station_Index+1)+ "_" + DateString_Plot + ".png")
             plt.show()
             
             fig1 = plt.figure()
@@ -560,7 +564,7 @@ def Plot_Parameters(Def_Print, fm, legend, plt, cm, colors, r, Def_Region, DasPy
                 tick.label1.set_fontsize(fontsize=18)
             for tick in ax1.yaxis.get_major_ticks():
                 tick.label1.set_fontsize(fontsize=18)
-            plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/Clay_Ensembles_Station_"+str(Station_Index+1)+".png")
+            plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/Clay_Ensembles_Station_"+str(Station_Index+1) + "_" + DateString_Plot + ".png")
             plt.show()
             
             fig1 = plt.figure()
@@ -620,7 +624,7 @@ def Plot_Parameters(Def_Print, fm, legend, plt, cm, colors, r, Def_Region, DasPy
             for tick in ax1.yaxis.get_major_ticks():
                 tick.label1.set_fontsize(fontsize=18)
                 
-            plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/Organic_Ensembles_Station_"+str(Station_Index+1)+".png")
+            plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/Organic_Ensembles_Station_"+str(Station_Index+1)+ "_" + DateString_Plot + ".png")
             plt.show()
             
             
@@ -660,7 +664,7 @@ def Plot_Parameters(Def_Print, fm, legend, plt, cm, colors, r, Def_Region, DasPy
             for tick in ax1.yaxis.get_major_ticks():
                 tick.label1.set_fontsize(fontsize=18)
             
-            plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/LAI_Ensembles_Station_"+str(Station_Index+1)+".png")
+            plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/LAI_Ensembles_Station_"+str(Station_Index+1) + "_" + DateString_Plot + ".png")
             plt.show()
             
             x=numpy.arange(Par_Steps_PFT)
@@ -696,7 +700,7 @@ def Plot_Parameters(Def_Print, fm, legend, plt, cm, colors, r, Def_Region, DasPy
             for tick in ax1.yaxis.get_major_ticks():
                 tick.label1.set_fontsize(fontsize=18)
             
-            plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/SAI_Ensembles_Station_"+str(Station_Index+1)+".png")
+            plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/SAI_Ensembles_Station_"+str(Station_Index+1)+ "_" + DateString_Plot + ".png")
             plt.show()
         
             
@@ -737,6 +741,11 @@ def Plot_States(octave, fm, legend, plt, cm, colors, Def_Region, Region_Name, Pl
     
     NC_File_Out_Assimilation_2_Initial.close()
     NC_File_Out_Assimilation_2_Diagnostic.close()
+
+
+    # added by dominik 15/06/2016: copy nc diagnostics file with timestamp in filenamei
+    #NC_FileName_Assimilation_2_Diagnostic_time = NC_FileName_Assimilation_2_Diagnostic.rsplit( ".", 1 )[ 0 ] + '_' + DateString_Plot + '.nc' 
+    #copyfile(NC_FileName_Assimilation_2_Diagnostic, NC_FileName_Assimilation_2_Diagnostic_time) 
     
     NC_File_Out_Assimilation_2_Initial_Copy = netCDF4.Dataset(NC_FileName_Assimilation_2_Initial_Copy, 'r')
     CLM_Soil_Moisture_Ensemble_Mat_Copy = NC_File_Out_Assimilation_2_Initial_Copy.variables['CLM_Soil_Moisture_Ensemble_Mat'][:,:,:,:]
@@ -796,10 +805,10 @@ def Plot_States(octave, fm, legend, plt, cm, colors, Def_Region, Region_Name, Pl
             if SensorQuantity_Sub == 'K':
                 Variable_Min_Innovation= -10.0
                 Variable_Max_Innovation = 10.0
-                ObsModel_Mat_Masked = numpy.ma.masked_where(ObsModel_Mat_Masked<50,ObsModel_Mat_Masked)
-                ObsModel_Mat_Masked = numpy.ma.masked_where(ObsModel_Mat_Masked>350,ObsModel_Mat_Masked)
-                Variable_Obs_Min = 150.0
-                Variable_Obs_Max = 250.0
+                ObsModel_Mat_Masked = numpy.ma.masked_where(ObsModel_Mat_Masked<-50,ObsModel_Mat_Masked)
+                ObsModel_Mat_Masked = numpy.ma.masked_where(ObsModel_Mat_Masked>+50,ObsModel_Mat_Masked)
+                Variable_Obs_Min = -25.0
+                Variable_Obs_Max = 25.0
             elif SensorQuantity_Sub == 'Neutron_Count':
                 Variable_Min_Innovation= -20.0
                 Variable_Max_Innovation = 20.0
@@ -955,7 +964,13 @@ def Plot_States(octave, fm, legend, plt, cm, colors, Def_Region, Region_Name, Pl
         ax.set_title('Increments_State')
         plt.grid(True)
         
-        plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/Analysis_"+str(Observation_Matrix_Index)+".png") 
+        
+        import time
+        import datetime
+        ts = time.time()
+        st = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%d%H%M%S') 
+
+        plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/Analysis_"+str(Observation_Matrix_Index)+"_"+DateString_Plot+".png")
         
         if Plot_Analysis >= 2:
             for Ens_Index in range(Ensemble_Number):
@@ -990,7 +1005,7 @@ def Plot_States(octave, fm, legend, plt, cm, colors, Def_Region, Region_Name, Pl
                 ax.set_title('Increments_State_Ens'+str(Ens_Index+1))
                 plt.grid(True)
                 
-                plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/Ens/" + "Analysis_Grid_Array_Innovation_Increments_Ens"+str(Ens_Index+1) + ".png") 
+                plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/Ens/" + "Analysis_Grid_Array_Innovation_Increments_Ens"+str(Ens_Index+1) + "_" + DateString_Plot + ".png") 
         
         if (Variable_Assimilation_Flag[Variable_List.index(SensorVariable_Sub)] == 1 and SensorVariable_Sub == 'Surface_Temperature') or (Variable_Assimilation_Flag[Variable_List.index(SensorVariable_Sub)] == 1 and SensorVariable_Sub == 'Soil_Moisture') or (Variable_Assimilation_Flag[Variable_List.index(SensorVariable_Sub)] == 1 and SensorVariable_Sub == 'Latent_Heat') or (Variable_Assimilation_Flag[Variable_List.index(SensorVariable_Sub)] == 1 and SensorVariable_Sub == 'Latent_Heat_Daily'):
             # Plot the deep soil
@@ -1075,7 +1090,7 @@ def Plot_States(octave, fm, legend, plt, cm, colors, Def_Region, Region_Name, Pl
             ax.set_title('Increment')
             plt.grid(True)
             
-            plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/Deep_Layers_"+str(Observation_Matrix_Index)+".png")
+            plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/Deep_Layers_"+str(Observation_Matrix_Index) + "_" + DateString_Plot + ".png")
                               
                                       
         plt.show()

@@ -1,13 +1,13 @@
-# -*- coding: utf-8 -*- 
 '''
+# -*- coding: utf-8 -*- 
 Copyright of DasPy:
-Author - Xujun Han (Forschungszentrum Jülich, Germany)
+Author - Xujun Han (Forschungszentrum Juelich, Germany)
 x.han@fz-juelich.de, xujunhan@gmail.com
 
 DasPy was funded by:
-1. Forschungszentrum Jülich, Agrosphere (IBG 3), Jülich, Germany
+1. Forschungszentrum Juelich, Agrosphere (IBG 3), Juelich, Germany
 2. Cold and Arid Regions Environmental and Engineering Research Institute, Chinese Academy of Sciences, Lanzhou, PR China
-3. Centre for High-Performance Scientific Computing in Terrestrial Systems: HPSC TerrSys, Geoverbund ABC/J, Jülich, Germany
+3. Centre for High-Performance Scientific Computing in Terrestrial Systems: HPSC TerrSys, Geoverbund ABC/J, Juelich, Germany
 
 Please include the following references related to DasPy:
 1. Han, X., Li, X., He, G., Kumbhar, P., Montzka, C., Kollet, S., Miyoshi, T., Rosolem, R., Zhang, Y., Vereecken, H., and Franssen, H. J. H.: 

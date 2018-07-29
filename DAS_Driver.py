@@ -71,20 +71,20 @@ def DAS_Driver(mpi4py_comm, mpi4py_null, mpi4py_rank,  mpi4py_size, mpi4py_name,
     
     if mpi4py_rank == 0:
         if Def_Region == -1:
-            forcing_file_name = Forcing_File_Path_Home +"_Ens1/"+  Start_Year + '-' + Start_Month + '-' + Start_Day + '.nc'
+            forcing_file_name = Forcing_File_Path_Home +"_Ens1/"+  Start_Year + '_' + Start_Month + '_' + Start_Day + '_tair.nc'
             if not os.path.exists(forcing_file_name):
                 print "Forcing file",forcing_file_name,"does not exists!!!!!!!!"
                 print "Please Change the Start Date and Time."
                 os.abort()
         else:
-            forcing_file_name = Forcing_File_Path_Home +"/"+  Start_Year + '-' + Start_Month + '-' + Start_Day + '.nc'
+            forcing_file_name = Forcing_File_Path_Home +"/"+  Start_Year + '_' + Start_Month + '_' + Start_Day + '_tair.nc'
             if not os.path.exists(forcing_file_name):
                 print "Forcing file",forcing_file_name,"does not exists!!!!!!!!"
                 print "Please Change the Start Date and Time."
                 if Def_SpinUp != 1: # If we do multi years spinup, we could use one year foring to simulate multi years
                     os.abort()
         
-        PP_Port = 23335 + int(numpy.random.uniform(1000*Def_Region,2000*Def_Region))
+        PP_Port = 23335 + int(numpy.random.uniform(50*Def_Region,100*Def_Region))
         active_nodes_server = []
     else:
         forcing_file_name = None
@@ -412,7 +412,10 @@ def DAS_Driver(mpi4py_comm, mpi4py_null, mpi4py_rank,  mpi4py_size, mpi4py_name,
         try:
             Hydraulic_File = netCDF4.Dataset(Hydraulic_File_Name, 'r')
             Teta_Residual = Hydraulic_File.variables['RES'][:,:,:]
-            Teta_Saturated = Hydraulic_File.variables['SAT'][:,:,:]
+            #Teta_Saturated = Hydraulic_File.variables['SAT'][:,:,:]
+            
+            #dominik: 09/07/2016 
+            Teta_Saturated = Hydraulic_File.variables['WATSAT'][:,:,:]
             Teta_Field_Capacity = Hydraulic_File.variables['FC'][:,:,:]
             Teta_Wilting_Point = Hydraulic_File.variables['WP'][:,:,:]
             sucsat = Hydraulic_File.variables["sucsat"][:,:,:]
@@ -520,7 +523,7 @@ def DAS_Driver(mpi4py_comm, mpi4py_null, mpi4py_rank,  mpi4py_size, mpi4py_name,
         PCT_Veg = numpy.sum(PCT_PFT[1:maxpft,:,:],axis=0)
         PCT_PFT_High = numpy.sum(PCT_PFT[1:9,:,:],axis=0) / 100.0
         PCT_PFT_Low = numpy.sum(PCT_PFT[9:maxpft,:,:],axis=0) / 100.0
-        PCT_PFT_WATER = PCT_LAKE / 100.0
+        #PCT_PFT_WATER = PCT_LAKE / 100.0
         PFT_Dominant_Index = numpy.argmax(PCT_PFT,axis=0)
         numpy.savetxt("PFT_Dominant_Index_"+Region_Name+".txt",PFT_Dominant_Index)
         w,h = plt.figaspect(float(Row_Numbers)/Col_Numbers)
@@ -1146,11 +1149,13 @@ def DAS_Driver(mpi4py_comm, mpi4py_null, mpi4py_rank,  mpi4py_size, mpi4py_name,
                 Bias_Record_Index[0] = len(NC_File_Out_Estimated_Bias.dimensions['time']) - 1
                 Bias_Record_Index[1] = len(NC_File_Out_Estimated_Bias.dimensions['time']) - 1
                 NC_File_Out_Estimated_Bias.close()
-                
-            NC_File_Out_Soil_Moisture_Difference = netCDF4.Dataset(NC_FileName_Soil_Moisture_Difference, 'r')
-            if len(NC_File_Out_Soil_Moisture_Difference.dimensions['time']) >= 1:
-                Soil_Moisture_Diff_Index = len(NC_File_Out_Soil_Moisture_Difference.dimensions['time']) - 1
-            NC_File_Out_Soil_Moisture_Difference.close()
+            
+
+            # dominik 18/07/2016    
+            #NC_File_Out_Soil_Moisture_Difference = netCDF4.Dataset(NC_FileName_Soil_Moisture_Difference, 'r')
+            #if len(NC_File_Out_Soil_Moisture_Difference.dimensions['time']) >= 1:
+            #    Soil_Moisture_Diff_Index = len(NC_File_Out_Soil_Moisture_Difference.dimensions['time']) - 1
+            #NC_File_Out_Soil_Moisture_Difference.close()
         
         NC_File_Out_Assimilation_2_Constant = netCDF4.Dataset(NC_FileName_Assimilation_2_Constant, 'r')
         CLM_Soil_Layer_Thickness = numpy.asarray(NC_File_Out_Assimilation_2_Constant.variables['CLM_Soil_Layer_Thickness'][:,:,:])
@@ -1246,12 +1251,10 @@ def DAS_Driver(mpi4py_comm, mpi4py_null, mpi4py_rank,  mpi4py_size, mpi4py_name,
         mpi4py_comm.Bcast([Model_Variance,MPI.FLOAT])
         mpi4py_comm.Bcast([Mask,MPI.FLOAT])
         mpi4py_comm.Bcast([Mask_Index,MPI.BOOL])
-        
         mpi4py_comm.Bcast([Mask_X,MPI.FLOAT])
         mpi4py_comm.Bcast([Mask_Y,MPI.FLOAT])
         mpi4py_comm.Bcast([LONGXY_Mat,MPI.FLOAT])
         mpi4py_comm.Bcast([LATIXY_Mat,MPI.FLOAT])
-        
         mpi4py_comm.Bcast([Observation_Bias_Initialization_Flag,MPI.FLOAT])
         mpi4py_comm.Bcast([Observation_Bias_Optimized,MPI.FLOAT])
         mpi4py_comm.Bcast([Model_Bias_Range,MPI.FLOAT])
@@ -1265,7 +1268,6 @@ def DAS_Driver(mpi4py_comm, mpi4py_null, mpi4py_rank,  mpi4py_size, mpi4py_name,
         mpi4py_comm.Bcast([Additive_Noise_SM_Par,MPI.FLOAT])
         mpi4py_comm.Bcast([Additive_Noise_SM,MPI.FLOAT])
         mpi4py_comm.Bcast([Additive_Noise_ST,MPI.FLOAT])
-        
         Irrigation_Grid_Flag_Array = mpi4py_comm.bcast(Irrigation_Grid_Flag_Array)
         mpi4py_comm.Bcast([cols1d_ixy,MPI.INT])
         mpi4py_comm.Bcast([cols1d_jxy,MPI.INT])
@@ -1275,7 +1277,6 @@ def DAS_Driver(mpi4py_comm, mpi4py_null, mpi4py_rank,  mpi4py_size, mpi4py_name,
         mpi4py_comm.Bcast([pfts1d_itypveg,MPI.INT])
         mpi4py_comm.Bcast([pfts1d_ci,MPI.INT])
         mpi4py_comm.Bcast([pfts1d_ityplun,MPI.INT])
-#         
         mpi4py_comm.Bcast([PCT_PFT_High,MPI.FLOAT])
         mpi4py_comm.Bcast([PCT_PFT_Low,MPI.FLOAT])
         mpi4py_comm.Bcast([PCT_PFT_WATER,MPI.FLOAT])
@@ -1284,7 +1285,6 @@ def DAS_Driver(mpi4py_comm, mpi4py_null, mpi4py_rank,  mpi4py_size, mpi4py_name,
         mpi4py_comm.Bcast([ECOTVL_Mat,MPI.FLOAT])
         mpi4py_comm.Bcast([ECOTVH_Mat,MPI.FLOAT])
         mpi4py_comm.Bcast([ECOWAT_Mat,MPI.FLOAT])
-         
         mpi4py_comm.Bcast([Soil_Density,MPI.FLOAT])
         CMEM_Work_Path_Array = mpi4py_comm.bcast(CMEM_Work_Path_Array) 
          
@@ -1301,7 +1301,9 @@ def DAS_Driver(mpi4py_comm, mpi4py_null, mpi4py_rank,  mpi4py_size, mpi4py_name,
         mpi4py_comm.Bcast([Par_Hard_Uniform_STD,MPI.FLOAT])
         mpi4py_comm.Bcast([Optimized_Parameter_Index,MPI.INT])
         mpi4py_comm.Bcast([Bias_Record_Index,MPI.INT])
-        Soil_Moisture_Diff_Index = mpi4py_comm.bcast(Soil_Moisture_Diff_Index)
+
+        # dominik: 18/07/2016
+        #Soil_Moisture_Diff_Index = mpi4py_comm.bcast(Soil_Moisture_Diff_Index)
         mpi4py_comm.Bcast([CLM_Soil_Layer_Thickness,MPI.FLOAT])
         mpi4py_comm.Bcast([Analysis_Grid,MPI.FLOAT])
         mpi4py_comm.Bcast([Localization_Map_Mask,MPI.FLOAT])
@@ -1310,17 +1312,27 @@ def DAS_Driver(mpi4py_comm, mpi4py_null, mpi4py_rank,  mpi4py_size, mpi4py_name,
         COSMOS_Circle_Array = mpi4py_comm.bcast(COSMOS_Circle_Array)
         COSMOS_Circle_Index_Array = mpi4py_comm.bcast(COSMOS_Circle_Index_Array)
         COSMOS_Circle_Num_Array = mpi4py_comm.bcast(COSMOS_Circle_Num_Array)
-        
     if Def_PP == 2:
         mpi4py_comm.barrier()
         mpi4py_comm.Barrier()
-    
     #================================================= Do Data Assimilation
     if Do_DA_Flag:
         if mpi4py_rank == 0:
             #---------------------------------------------- Read Observation Time -----------------------------
-            Observation_Time_File = open(Observation_Time_File_Path + '/Observation_Time.txt', 'r')
+            Observation_Time_File = open(Observation_Time_File_Path + '/Observation_Time_empty.txt', 'r')
+            #Observation_Time_File = open(Observation_Time_File_Path + '/Observation_Time_TB_an_2010_2015.txt', 'r')
+
+            #Observation_Time_File = open(Observation_Time_File_Path + '/SMAPCDF_Observation_Time_TB_an_2010_2016_Oct_Mbidgee.txt', 'r')
+            #Observation_Time_File = open(Observation_Time_File_Path + '/smap_masked.txt','r')
+
+            #Observation_Time_File = open(Observation_Time_File_Path + '/SMOS_Gabrielle_short_SMAPclim.txt','r')
+
+
+            #LAI study
+            #Observation_Time_File = open(Observation_Time_File_Path + '/LAI_dyn.txt', 'r')
+
             Observation_Time_File_Header = Observation_Time_File.readline()
+
             print "Observation_Time_File_Header",Observation_Time_File_Header
             Observation_Time_Lines = Observation_Time_File.readlines()
         else:
@@ -1848,7 +1860,7 @@ def DAS_Driver(mpi4py_comm, mpi4py_null, mpi4py_rank,  mpi4py_size, mpi4py_name,
                                 ax.set_title('ObsModel_Variance_Value')
                                 plt.grid(True)
                                 
-                                plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/SysModel_ObsModel_Observation_"+str(Observation_Matrix_Index)+".png")
+                                plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/SysModel_ObsModel_Observation_"+str(Observation_Matrix_Index)+"_"+DateString_Plot+".png")
                                 plt.close('all')
                                 #os.abort()
                                 
@@ -2204,7 +2216,7 @@ def DAS_Driver(mpi4py_comm, mpi4py_null, mpi4py_rank,  mpi4py_size, mpi4py_name,
                                                   omp_get_num_procs_ParFor, Low_Ratio_Par, High_Ratio_Par, Soil_Texture_Layer_Opt_Num, Def_Snow_Effects, PFT_Par_Sens_Array,\
                                                   Soil_Thickness, Soil_Layer_Num, Snow_Layer_Num, Density_of_liquid_water, Initial_Perturbation, Initial_Perturbation_SM_Flag, Initial_Perturbation_ST_Flag, \
                                                   NC_FileName_Assimilation_2_Constant, NC_FileName_Assimilation_2_Diagnostic, NC_FileName_Assimilation_2_Initial, NC_FileName_Assimilation_2_Bias, NC_FileName_Assimilation_2_Parameter, NC_FileName_Parameter_Space_Single,),
-                                          depfuncs=(Run_CLM, Call_CLM_3D, Write_datm_atm_in, Write_datm_streams_txt, Write_presaero_stream_txt, Write_lnd_in, Write_rof_in, Write_Config_Files, Write_drv_in, Write_seq_maps),
+                                          depfuncs=(Run_CLM, Call_CLM_3D, Write_datm_atm_in, Write_datm_streams_txt_rad, Write_datm_streams_txt_prec, Write_datm_streams_txt_tair, Write_presaero_stream_txt, Write_lnd_in, Write_rof_in, Write_Config_Files, Write_drv_in, Write_seq_maps),
                                           modules=("numpy", "netCDF4",  "sys", "os", "re", "unittest", "time", "datetime", "shutil", "fnmatch", "subprocess", "string", "socket", "signal", "gc", "imp", "getpass", "calendar", "glob","scipy.stats","scipy.signal",'scipy.weave',), group='Prepare_Model_Operator'))
                             
                             Ens_Index = Ens_Index + 1
@@ -2268,7 +2280,7 @@ def DAS_Driver(mpi4py_comm, mpi4py_null, mpi4py_rank,  mpi4py_size, mpi4py_name,
                                                                                                               Low_Ratio_Par, High_Ratio_Par, Soil_Texture_Layer_Opt_Num, Def_Snow_Effects, PFT_Par_Sens_Array,\
                                                                                                               Soil_Thickness, Soil_Layer_Num, Snow_Layer_Num, Density_of_liquid_water, Initial_Perturbation, Initial_Perturbation_SM_Flag, Initial_Perturbation_ST_Flag, NC_FileName_Assimilation_2_Constant, NC_FileName_Assimilation_2_Diagnostic, 
                                                                                                               NC_FileName_Assimilation_2_Initial, NC_FileName_Assimilation_2_Bias, NC_FileName_Parameter_Space_Single, COUP_OAS_PFL, CESM_Init_Flag, mpi4py_comm_split, mpi4py_null),
-                                          depfuncs=(Run_CLM, Call_CLM_3D, Write_datm_atm_in, Write_datm_streams_txt, Write_presaero_stream_txt, Write_lnd_in, Write_rof_in, Write_Config_Files, Write_drv_in, Write_seq_maps),
+                                          depfuncs=(Run_CLM, Call_CLM_3D, Write_datm_atm_in, Write_datm_streams_txt_rad, Write_datm_streams_txt_prec, Write_datm_streams_txt_tair, Write_presaero_stream_txt, Write_lnd_in, Write_rof_in, Write_Config_Files, Write_drv_in, Write_seq_maps),
                                           modules=("numpy", "netCDF4",  "sys", "os", "re", "unittest", "time", "datetime", "shutil", "fnmatch", "subprocess", "string", "socket", "signal", "gc", "imp", "getpass", "calendar", "glob","scipy.stats","scipy.signal",'scipy.weave',), group='Call_Model_Operator'))
                             
                             Ens_Index = Ens_Index + 1

@@ -1,13 +1,13 @@
-# -*- coding: utf-8 -*- 
 '''
+# -*- coding: utf-8 -*- 
 Copyright of DasPy:
-Author - Xujun Han (Forschungszentrum Jülich, Germany)
-x.han@fz-juelich.de, xujunhan@gmail.com
+Author - Xujun Han (Forschungszentrum Juelich, Germany)
+x.hanfz-juelich.de, xujunhangmail.com
 
 DasPy was funded by:
-1. Forschungszentrum Jülich, Agrosphere (IBG 3), Jülich, Germany
+1. Forschungszentrum Juelich, Agrosphere (IBG 3), Juelich, Germany
 2. Cold and Arid Regions Environmental and Engineering Research Institute, Chinese Academy of Sciences, Lanzhou, PR China
-3. Centre for High-Performance Scientific Computing in Terrestrial Systems: HPSC TerrSys, Geoverbund ABC/J, Jülich, Germany
+3. Centre for High-Performance Scientific Computing in Terrestrial Systems: HPSC TerrSys, Geoverbund ABC/J, Juelich, Germany
 
 Please include the following references related to DasPy:
 1. Han, X., Li, X., He, G., Kumbhar, P., Montzka, C., Kollet, S., Miyoshi, T., Rosolem, R., Zhang, Y., Vereecken, H., and Franssen, H. J. H.: 
@@ -23,18 +23,21 @@ import numpy, socket, sys, os, subprocess, multiprocessing
 sys.path.append('Utilities')
 import pyper
 
+#os.system("taskset -pc 0-47 %d" % os.getpid())
+
 def DAS_Initialize(Model_Driver, Def_Region, mpi4py_rank=0):
     
     if mpi4py_rank == 0:
         print "socket.gethostname()",socket.gethostname()
     
-    HOME_Path="/disk02/usr/people/lrains/"
+    HOME_Path="/homec/jicg41/jicg4152"
     
-    DasPy_Path = HOME_Path+"/Model/daspy/"
-    DAS_Data_Path = HOME_Path+"/Model/daspy/DAS_Data/"
-    DAS_Output_Path = HOME_Path+"/Model/daspy/DAS_Data/"
-    #DAS_Depends_Path = HOME_Path+"/DAS_Depends/"
-    DAS_Depends_Path = HOME_Path+"/Model/daspy_depends/"
+    DasPy_Path = HOME_Path+"/daspy/"
+    DasPy_Path_Octave = DasPy_Path
+    DAS_Data_Path = HOME_Path+"/daspy/DAS_Data/"
+    DAS_Output_Path = "/work/jicg41/jicg4152/daspy/DAS_Data/"
+    DAS_Depends_Path = "/homeb/hbn29/hbn29f/DAS_Depends/"
+    
     geog_data_path = ''
     WRF_WPS_Path = ""
     WRF_WRF_Path = ""
@@ -59,30 +62,97 @@ def DAS_Initialize(Model_Driver, Def_Region, mpi4py_rank=0):
         Observation_Path = DAS_Data_Path + "Observation/"+Region_Name+"/"
         Forcing_Folder = "Bilinear_1km_1hour_"+Region_Name
         
-        Station_XY = numpy.array([[6.2, -50.95],[6.2,-50.95]])
+        Station_XY = numpy.array([[6.2, 50.95],[6.36,50.5]])
 
+
+    if Def_Region == 33:
+        PicHeight=12500.0
+        PicWidth=12500.0
+        RegionName="Murray-Darling Basin"
+        Row_Numbers = 160   # The Number of Rows of Output Data
+        Col_Numbers = 160   # The Number of Cols of Output Data
+        # MDarling Boundary
+        Grid_Resolution_CEA = 0.125
+        Grid_Resolution_CEA_String = "degrees"
+        mksrf_edgew = 135.0
+        mksrf_edgee = 155.0
+        mksrf_edges = -40.0
+        mksrf_edgen = -20.0
+        Region_Name = "MDarling"
+        Run_Dir_Home = DAS_Output_Path + "SysModel/CLM/"+Region_Name+"/3D"
+        Hydraulic_File_Name = DAS_Data_Path + "DataBase/"+Region_Name+"_Hydraulic.nc"
+        Mask_File = DAS_Data_Path + "Analysis/Data/"+Region_Name+"/VEG_"+Region_Name+"_1km.dat"
+        Observation_Path = DAS_Data_Path + "Observation/"+Region_Name+"/"
+        Forcing_Folder = "WFDEI_MDarling_0.5deg"
+        
+        Station_XY = numpy.array([[150, -31],[152,-29]])
 
     if Def_Region == 44:
         PicHeight=25000.0
         PicWidth=25000.0
         RegionName="Australia"
-        Row_Numbers = 120    # The Number of Rows of Output Data
-        Col_Numbers = 180   # The Number of Cols of Output Data
-        # Rur Boundary
+        Region_Name="Australia"
+        Row_Numbers=120
+        Col_Numbers=180
         Grid_Resolution_CEA = 25000
-        Grid_Resolution_CEA_String = "1km"
+        #Grid_Resolution_CEA = 28000
+        Grid_Resolution_CEA_String = "25km"
         mksrf_edgew = 110.0
         mksrf_edgee = 155.0
         mksrf_edges = -40.0
         mksrf_edgen = -10.0
-        Region_Name = "Australia"
         Run_Dir_Home = DAS_Output_Path + "SysModel/CLM/"+Region_Name+"/3D"
         Hydraulic_File_Name = DAS_Data_Path + "DataBase/"+Region_Name+"_Hydraulic.nc"
-        Mask_File = DAS_Data_Path + "Analysis/Data/"+Region_Name+"/VEG_"+Region_Name+"_1km.dat"
+        Mask_File = DAS_Data_Path + "Analysis/Data/"+Region_Name+"VEG_"+Region_Name+"_1km.dat"
         Observation_Path = DAS_Data_Path + "Observation/"+Region_Name+"/"
-        Forcing_Folder = "WFDEI_"+Region_Name
+        Forcing_Folder ="ERA_"+Region_Name
+        Station_XY = numpy.array([[149,-36.25]])
 
-        Station_XY = numpy.array([[145.0, -25.0],[145.0,-25.0]])
+
+    if Def_Region == 55:
+        PicHeight=25000.0
+        PicWidth=25000.0
+        RegionName="Australia2"
+        Region_Name="Australia2"
+        Row_Numbers=120
+        Col_Numbers=180
+        Grid_Resolution_CEA = 25000
+        #Grid_Resolution_CEA = 28000
+        Grid_Resolution_CEA_String = "25km"
+        mksrf_edgew = 110.0
+        mksrf_edgee = 155.0
+        mksrf_edges = -40.0
+        mksrf_edgen = -10.0
+        Run_Dir_Home = DAS_Output_Path + "SysModel/CLM/"+Region_Name+"/3D"
+        Hydraulic_File_Name = DAS_Data_Path + "DataBase/Australia_Hydraulic.nc"
+        Mask_File = DAS_Data_Path + "Analysis/Data/"+Region_Name+"VEG_"+Region_Name+"_1km.dat"
+        Observation_Path = DAS_Data_Path + "Observation/"+Region_Name+"/"
+        Forcing_Folder ="ERA_Australia"
+        Station_XY = numpy.array([[149,-36.25]])
+
+    if Def_Region == 66:
+        PicHeight=25000.0
+        PicWidth=25000.0
+        RegionName="Australia3"
+        Region_Name="Australia3"
+        Row_Numbers=120
+        Col_Numbers=180
+        Grid_Resolution_CEA = 25000
+        #Grid_Resolution_CEA = 28000
+        Grid_Resolution_CEA_String = "25km"
+        mksrf_edgew = 110.0
+        mksrf_edgee = 155.0
+        mksrf_edges = -40.0
+        mksrf_edgen = -10.0
+        Run_Dir_Home = DAS_Output_Path + "SysModel/CLM/"+Region_Name+"/3D"
+        Hydraulic_File_Name = DAS_Data_Path + "DataBase/Australia_Hydraulic.nc"
+        Mask_File = DAS_Data_Path + "Analysis/Data/"+Region_Name+"VEG_"+Region_Name+"_1km.dat"
+        Observation_Path = DAS_Data_Path + "Observation/"+Region_Name+"/"
+        Forcing_Folder ="ERA_Australia"
+        Station_XY = numpy.array([[149,-36.25]])
+
+
+
     
     if mpi4py_rank == 0:
         print "mksrf_edgew,mksrf_edgee",mksrf_edgew,mksrf_edgee
@@ -98,13 +168,16 @@ def DAS_Initialize(Model_Driver, Def_Region, mpi4py_rank=0):
         print"mksrf_edgew,mksrf_edgee,mksrf_edges,mksrf_edgen",mksrf_edgew,mksrf_edgee,mksrf_edges,mksrf_edgen
         print Station_XY[0][0],Station_XY[0][1],numpy.size(Station_XY)
     
-    Forcing_File_Path_Home = DAS_Data_Path + 'ForcingData/'+Forcing_Folder+'/CLM'
-        
+    #Forcing_File_Path_Home = DAS_Data_Path + 'ForcingData/'+Forcing_Folder+'/CLM'
+    # dominik
+    Forcing_File_Path_Home = '/work/jicg41/jicg4152/ERA-Interim/restore/jicg41/jicg4152/daspy/DAS_Data/ForcingData/ERA_Australia' + '/CLM'    
+    
     Station_XY_Index = numpy.zeros(numpy.shape(Station_XY),dtype=numpy.integer)
     
     for Staton_Index in range(numpy.size(Station_XY)/2):
         Station_XY_Index[Staton_Index][0] = int((Station_XY[Staton_Index][0] - mksrf_edgew) / Grid_Resolution_GEO[0])
         Station_XY_Index[Staton_Index][1] = int((mksrf_edgen - Station_XY[Staton_Index][1]) / Grid_Resolution_GEO[1])
+        #Station_XY_Index[Staton_Index][0] = Col_Numbers - Station_XY_Index[Staton_Index][0]
     
     if mpi4py_rank == 0:
         print "Col_Index,Row_Index"
@@ -117,7 +190,7 @@ def DAS_Initialize(Model_Driver, Def_Region, mpi4py_rank=0):
         print DAS_Depends_Path+"lib64/R/bin/R"
         #print pyper.R(RCMD=DAS_Depends_Path+"lib64/R/bin/R",use_numpy=True)
         try:
-            r = pyper.R(use_numpy=True)
+            r = pyper.R(RCMD=DAS_Depends_Path+"lib64/R/bin/R",use_numpy=True)
         except:
             r = pyper.R(use_numpy=True)
         #r('.libPaths("~/Rlibs")')    # Add Library Path to R
@@ -206,6 +279,10 @@ def DAS_Initialize(Model_Driver, Def_Region, mpi4py_rank=0):
         if Def_Region == 3:
             r.assign('XMin',mksrf_edgew+Grid_Resolution_GEO[0])
             r.assign('YMin',mksrf_edges+Grid_Resolution_GEO[1])
+			
+        if Def_Region == 33:
+            r.assign('XMin',mksrf_edgew+Grid_Resolution_GEO[0])
+            r.assign('YMin',mksrf_edges+Grid_Resolution_GEO[1])			
         else:
             r.assign('XMin',mksrf_edgew)
         r.assign('YMin', mksrf_edges)

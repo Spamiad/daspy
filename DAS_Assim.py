@@ -23,6 +23,8 @@ import os, sys, time, datetime, random, math, gc, subprocess, glob, signal, stri
 import numpy, scipy, scipy.stats, scipy.signal, netCDF4, scipy.ndimage
 import pp,imp
 
+#os.system("taskset -pc 0-47 %d" % os.getpid())
+
 sys.path.append('SysModel/CLM')
 sys.path.append('Utilities')
 sys.path.append('Utilities/Soil')
@@ -908,20 +910,20 @@ def CLM_Assim_Common(Block_Index, Model_Driver, Def_PP, Def_First_Run, Def_Print
                     Analysis_Grid_Array[Ens_Index,::][::] = numpy.reshape(Analysis_Grid_Col, (Row_Numbers, -1))
                     
                     
-            if Write_DA_File_Flag:
-                numpy.savetxt(DasPy_Path+'Analysis/DAS_Temp/Analysis_Parameter.txt', xm)
-                numpy.savetxt(DasPy_Path+'Analysis/DAS_Temp/Analysis_Ens_Parameter.txt', xa)
-                numpy.savetxt(DasPy_Path+"Analysis/DAS_Temp/Innovation_Parameter.txt",numpy.mean(innovation,axis=1))
-                numpy.savetxt(DasPy_Path+"Analysis/DAS_Temp/Increments_Parameter.txt",numpy.mean(increments,axis=1))
+            #if Write_DA_File_Flag:
+            numpy.savetxt(DasPy_Path+'Analysis/DAS_Temp/'+DateString_Plot+'Analysis_Parameter.txt', xm)
+            numpy.savetxt(DasPy_Path+'Analysis/DAS_Temp/'+DateString_Plot+'Analysis_Ens_Parameter.txt', xa)
+            numpy.savetxt(DasPy_Path+'Analysis/DAS_Temp/'+DateString_Plot+'Innovation_Parameter.txt',numpy.mean(innovation,axis=1))
+            numpy.savetxt(DasPy_Path+'Analysis/DAS_Temp/'+DateString_Plot+'Increments_Parameter.txt',numpy.mean(increments,axis=1))
                 
             
-        if Write_DA_File_Flag:
-            numpy.savetxt(DasPy_Path+'Analysis/DAS_Temp/Analysis_State.txt', xm)
-            numpy.savetxt(DasPy_Path+'Analysis/DAS_Temp/Localization_map_col.txt', localization_map_col)
-            numpy.savetxt(DasPy_Path+'Analysis/DAS_Temp/Analysis_Ens_State.txt', xa)
-            numpy.savetxt(DasPy_Path+'Analysis/DAS_Temp/Bias_Analysis_State.txt', bias_a)
-            numpy.savetxt(DasPy_Path+"Analysis/DAS_Temp/Innovation_State.txt",numpy.mean(innovation,axis=1))
-            numpy.savetxt(DasPy_Path+"Analysis/DAS_Temp/Increments_State.txt",numpy.mean(increments,axis=1))
+        #if Write_DA_File_Flag:
+        numpy.savetxt(DasPy_Path+'Analysis/DAS_Temp/'+DateString_Plot+'Analysis_State.txt', xm)
+        numpy.savetxt(DasPy_Path+'Analysis/DAS_Temp/'+DateString_Plot+'Localization_map_col.txt', localization_map_col)
+        numpy.savetxt(DasPy_Path+'Analysis/DAS_Temp/'+DateString_Plot+'Analysis_Ens_State.txt', xa)
+        numpy.savetxt(DasPy_Path+'Analysis/DAS_Temp/'+DateString_Plot+'Bias_Analysis_State.txt', bias_a)
+        numpy.savetxt(DasPy_Path+'Analysis/DAS_Temp/'+DateString_Plot+'Innovation_State.txt',numpy.mean(innovation,axis=1))
+        numpy.savetxt(DasPy_Path+'Analysis/DAS_Temp/'+DateString_Plot+'Increments_State.txt',numpy.mean(increments,axis=1))
         
         for Ens_Index in range(Ensemble_Number):
             Innovation_State_Col = Innovation_State[Ens_Index,:,:].flatten()
@@ -1221,7 +1223,7 @@ def Block_Assim(Block_Index, Model_Driver, Sub_Block_Index_Row_Mat_Vector, Sub_B
             plt.colorbar(im1, ticks=ticks, orientation='horizontal')
             ax.set_title('Observation_Matrix_SubBlock')
             plt.grid(True)
-            plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"/Observation_Matrix_SubBlock.png")
+            plt.savefig(DasPy_Path+"Analysis/DAS_Temp/"+Region_Name+"_"+DateString_Plot+"/Observation_Matrix_SubBlock.png")
             plt.close('all')
         
         NC_File_Out_Assimilation_2_Constant = netCDF4.Dataset(NC_FileName_Assimilation_2_Constant, 'r')
@@ -1280,6 +1282,11 @@ def Block_Assim(Block_Index, Model_Driver, Sub_Block_Index_Row_Mat_Vector, Sub_B
         CLM_Vegetation_Temperature_parm_infl_SubBlock = NC_File_Out_Assimilation_2_Initial.variables['CLM_Vegetation_Temperature_parm_infl'][Observation_Box_Row_Index_Start:Observation_Box_Row_Index_End, Observation_Box_Col_Index_Start:Observation_Box_Col_Index_End]
         CLM_Soil_Moisture_parm_infl_SubBlock = NC_File_Out_Assimilation_2_Initial.variables['CLM_Soil_Moisture_parm_infl'][:, Observation_Box_Row_Index_Start:Observation_Box_Row_Index_End, Observation_Box_Col_Index_Start:Observation_Box_Col_Index_End]
         CLM_Soil_Temperature_parm_infl_SubBlock = NC_File_Out_Assimilation_2_Initial.variables['CLM_Soil_Temperature_parm_infl'][:, Observation_Box_Row_Index_Start:Observation_Box_Row_Index_End, Observation_Box_Col_Index_Start:Observation_Box_Col_Index_End]
+
+# dominik29/06/2016 read other variable into latent_heat to ommit error, assuming variable is not important 
+        CLM_Latent_Heat_parm_infl_SubBlock = NC_File_Out_Assimilation_2_Initial.variables['CLM_Soil_Temperature_parm_infl'][:, Observation_Box_Row_Index_Start:Observation_Box_Row_Index_End, Observation_Box_Col_Index_Start:Observation_Box_Col_Index_End]
+
+
            
         NC_File_Out_Assimilation_2_Initial.close()
         
